@@ -28,7 +28,7 @@
 
 #include <Arduino.h>
 #include <SPI.h>
-#include "ccpacket.h"
+#include "../ccpacket/ccpacket.h"
 
 /**
  * Carrier frequencies
@@ -53,9 +53,12 @@ enum RFSTATE
 };
 
 #ifdef ESP32
-#define CC1101_GDO0 34   // 34 input interrupt pin, can be changed
+//#define CC1101_GDO0 34   // 34 input interrupt pin, can be changed
+#define CC1101_GDO0 4
+#define CC1101_GDO2 2
 #else
 #define CC1101_GDO0 2   // GDO0 input interrupt pin
+
 #endif 
 
 /**

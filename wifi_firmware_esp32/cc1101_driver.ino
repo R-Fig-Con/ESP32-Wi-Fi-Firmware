@@ -23,7 +23,7 @@
  * Creation date: 03/03/2011
  */
 
-//#include "cc1101.h"
+//#include "cc1101_driver.h"
 
 /**
  * Macros

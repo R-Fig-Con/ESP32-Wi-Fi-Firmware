@@ -1,8 +1,8 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <esp_wifi.h>
-#include "cc1101_driver.h"
-#include "ccpacket.h"
+#include "../src/ccpacket/ccpacket.h"
+#include "../src/cc1101_driver/cc1101_driver.h"
 
 /**
  * Useful constants.
