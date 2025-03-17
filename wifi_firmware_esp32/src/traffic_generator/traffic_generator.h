@@ -8,7 +8,7 @@
 
 #define TRF_GEN_MAX_MSG_LEN 128 //Better to have a small message and just repeat it several times if we want to send a large packet (uses less memory).
 
-struct TRAFFIC_GEN
+class TRAFFIC_GEN
 {
   private:
     //Maybe should contain more destinations, so it can cycle through each of them
@@ -23,6 +23,12 @@ struct TRAFFIC_GEN
     uint8_t message[TRF_GEN_MAX_MSG_LEN];
 
     /**
+     * Size of the message
+     * Since protocol does not analyse contents, we probably cannot assume last is '\0' as in c strings
+     */
+    uint16_t message_size;
+
+    /**
      * Time interval mode
      */
     uint8_t time_interval_mode = TRF_GEN_CONST;
@@ -30,13 +36,14 @@ struct TRAFFIC_GEN
     /**
      * If mode is TRF_GEN_CONST: the absolute time interval
      * If mode is TRF_GEN_GAUSS: the median time interval
+     * Is in millisseconds
      */
     uint16_t time_interval = 200;
 
     /**
-     * Time to wait before sending again. If mode is constant, it should always equal time_interval
+     * Time to wait before sending again.
      */
-    uint16_t time_to_next = time_interval;
+    uint16_t time_to_next;
 
     /**
      * Function to be called to send a packet.
@@ -74,22 +81,22 @@ struct TRAFFIC_GEN
     /**
      * Sets message to be sent in each frame.
      */
-    void setMessage(uint8_t message[TRF_GEN_MAX_MSG_LEN], uint16_t size);
+    void setMessage(uint8_t given_message[TRF_GEN_MAX_MSG_LEN], uint16_t size);
 
     /**
      * clearToSend
      *
      * Checks if enough time has passed to be able to send
      * 
-     * returns 0 as false, else true
+     * returns true if it can be sent
      */
-    uint8_t clearToSend();
+    bool clearToSend();
 
     /**
      * set_sender
      *
      * Sets the function that will be used to send the packet
      */
-    void setSender(bool (* sendDataF)(bool));
+    void setSender(bool (* sendDataF)(CCPACKET));
 
 };
