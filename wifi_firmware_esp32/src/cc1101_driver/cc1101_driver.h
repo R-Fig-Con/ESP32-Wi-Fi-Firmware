@@ -28,7 +28,7 @@
 
 #include <Arduino.h>
 #include <SPI.h>
-#include "../ccpacket/ccpacket.h"
+#include "ccpacket.h"
 
 /**
  * Carrier frequencies

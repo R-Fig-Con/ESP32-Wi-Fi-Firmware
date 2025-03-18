@@ -50,7 +50,6 @@ macFrame * frame = (macFrame *) packet.data;
 
 void messageReceived() {
     packetWaiting = true;
-
 }
 
 void setup() {
@@ -151,8 +150,11 @@ void sender() {
   // Yes. Store the current time to use as a reference for the next packet.
   lastSend = now;
 
-  radio.sendData(packet);
-  
+  bool b = radio.sendData(packet);
+  if(b)
+    Serial.println(F("Packet sent."));
+  else
+    Serial.println(F("Sent failed."));
 }
 
 void receiver() {

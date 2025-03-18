@@ -464,7 +464,7 @@ bool CC1101::sendData(CCPACKET packet)
     while (getGDO2state()) {
       if (!getGDO0state() && getGDO2state()) {
 
-        //Serial.println("Premature end to the transmission!");     
+        Serial.println("Premature end to the transmission!");     
   
         // Clean-up
         setIdleState();       // Enter IDLE state
@@ -504,7 +504,7 @@ bool CC1101::sendData(CCPACKET packet)
   // Enter back into RX state
   setRxState();
 
-  return res;
+  return true;
 }
 
 /**
