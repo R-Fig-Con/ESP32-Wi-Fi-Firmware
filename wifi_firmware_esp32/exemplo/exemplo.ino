@@ -1,16 +1,12 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <esp_wifi.h>
-#include "../src/ccpacket/ccpacket.h"
-#include "../src/cc1101_driver/cc1101_driver.h"
+#include "src/cc1101_driver/cc1101_driver.h"
+#include "src/cc1101_driver/ccpacket.h"
 
 /**
  * Useful constants.
  */
-
-// Pins for the radio interrupts. TODO: move that to the driver.
-#define CC1101_GDO0 4
-#define CC1101_GDO2 2
 
 // Node operation mode: transmitter or receiver.
 enum nodeOpMode {
@@ -53,7 +49,6 @@ macFrame * frame = (macFrame *) packet.data;
 
 void messageReceived() {
     packetWaiting = true;
-
 }
 
 void setup() {
@@ -62,7 +57,7 @@ void setup() {
   // Initialize helper modules
 
   // Serial communication for debug
-  Serial.begin(500000);
+  Serial.begin(115200);
 
   // Wifi, for getting the MAC address.
   WiFi.mode(WIFI_STA);
@@ -90,7 +85,7 @@ void setup() {
 
   // Select this node's operation mode
   opMode = NODE_OP_MODE_RECEIVER;
-  opMode = NODE_OP_MODE_TRANSMITTER;
+  //opMode = NODE_OP_MODE_TRANSMITTER;
 
   // If we are operating as a receiver, attach the interrupt
   // for detecting receptions. For the sender, create the packet
@@ -139,7 +134,7 @@ void sender_create_data_packet(CCPACKET * packet) {
   frame->payload[l] = (char) 0;
   
   // Set the packet length. It is the length of the payload
-  // because it is a string, remember to count the \0 at the end),
+  // because it is a string, remember to count the \0 at the end,
   // plus the 6 bytes of the MAC address.
   packet->length = strlen((char *) frame->payload)  + 1 + 6;
 }
@@ -154,8 +149,12 @@ void sender() {
   // Yes. Store the current time to use as a reference for the next packet.
   lastSend = now;
 
-  radio.sendData(packet);
-  
+  bool b = radio.sendData(packet);
+  if(b){
+    Serial.print(F("Packet sent:")); 
+    Serial.println((char *)packet.data);
+  }else
+    Serial.println(F("Send failed."));
 }
 
 void receiver() {
@@ -184,7 +183,7 @@ void receiver() {
     Serial.println(F("dBm"));
 
     // If the packet seems right, let's process it.
-    if (packet.crc_ok && packet.length > 0) {
+    if (/*packet.crc_ok && */packet.length > 0) {
 
       // Just print some debug info.
       Serial.print(F("packet: len "));
@@ -206,3 +205,4 @@ void receiver() {
   attachInterrupt(CC1101_GDO0, messageReceived, RISING);
 
 }
+
