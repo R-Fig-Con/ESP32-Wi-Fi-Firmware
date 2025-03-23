@@ -1,5 +1,3 @@
-//#include "src/traffic_generator/traffic_generator.h"
-
 TRAFFIC_GEN::TRAFFIC_GEN(void (* sendDataF)(CCPACKET), uint8_t my_addr[6], uint8_t destination_addr[6]){
 
     this->running = false;
@@ -49,34 +47,6 @@ bool TRAFFIC_GEN::init() {
     return true;
 }
 
-/*bool TRAFFIC_GEN::send() {
-    //this->running = true;
-
-    switch(time_interval_mode){
-        case TRF_GEN_CONST:
-            time_to_next = time_interval;
-            break;
-        case TRF_GEN_GAUSS:
-            time_to_next = getTimeFromGauss();
-            break;
-        default:
-            return false;
-    }
-
-    static unsigned long last_send = 0;
-
-    unsigned long now = millis();
-    
-    // Is it time to generate the next packet?
-    if (now < last_send + time_to_next) return false;
-
-    // Yes. Store the current time to use as a reference for the next packet.
-    last_send = now;
-
-    this->sendData(this->packet);
-    return true;
-}*/
-
 float gauss_arr[6] = {0.66f, 0.10f, 0.2f};
 
 uint16_t TRAFFIC_GEN::getTimeFromGauss(){
@@ -104,6 +74,7 @@ bool TRAFFIC_GEN::setTime(uint8_t time_mode, uint16_t waiting_time){
 
     if(this->running) return false;
 
+    time_interval_mode = time_mode;
     time_interval = waiting_time;
 
     return true;

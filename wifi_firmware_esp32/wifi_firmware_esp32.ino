@@ -24,6 +24,7 @@ uint8_t myMacAddress[6];
 TRAFFIC_GEN * trf_gen;
 
 void messageReceived() {
+    //Serial.println(F("ON INTERRUPT")); //Penso que este tipo de operação nã deve ser feito num interrupt, o interrupt deve ser o mais rápido possível
     packetWaiting = true;
 }
 
@@ -62,6 +63,9 @@ void setup() {
     // Select this node's operation mode
     opMode = NODE_OP_MODE_RECEIVER;
     opMode = NODE_OP_MODE_TRANSMITTER;
+
+    if (opMode == NODE_OP_MODE_RECEIVER) Serial.println(F("Works as receiver"));
+    else Serial.println(F("Works as transmitter"));
 
     // If we are operating as a receiver, attach the interrupt
     // for detecting receptions. For the sender, create the packet
