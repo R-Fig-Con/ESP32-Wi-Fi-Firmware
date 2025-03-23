@@ -17,6 +17,11 @@ class TRAFFIC_GEN
      */
      uint8_t destination_mac[6];// size of a mac
 
+     /**
+     * Mac address of the self. Probaby not to be changed besides
+     */
+    uint8_t source_mac[6];// size of a mac
+
     /**
      * Message to be sent
      */
@@ -53,6 +58,11 @@ class TRAFFIC_GEN
   public:
 
     /**
+     * class constructor
+     */
+    TRAFFIC_GEN(void);
+
+    /**
      * init
      *
      * Sets up the module and all it's fields. Should set a deault value for message.
@@ -63,7 +73,7 @@ class TRAFFIC_GEN
      *
      * 'destination_addr' will be the address of the receiver.
      */
-    void init(bool (* sendDataF)(bool), uint8_t my_addr[6], uint8_t destination_addr[6]);
+    void init(bool (* sendDataF)(CCPACKET), uint8_t my_addr[6], uint8_t destination_addr[6]);
 
     /**
     * setTime
