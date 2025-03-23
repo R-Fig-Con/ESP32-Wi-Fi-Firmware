@@ -49,6 +49,7 @@ CCPACKET packet;
 macFrame * frame = (macFrame *) packet.data;
 
 void messageReceived() {
+    Serial.println(F("ON INTERRUPT"));
     packetWaiting = true;
 }
 
@@ -88,11 +89,19 @@ void setup() {
   opMode = NODE_OP_MODE_RECEIVER;
   opMode = NODE_OP_MODE_TRANSMITTER;
 
+  if (opMode == NODE_OP_MODE_RECEIVER) Serial.println(F("Works as receiver"));
+  else Serial.println(F("Works as transmitter"));
+
   // If we are operating as a receiver, attach the interrupt
   // for detecting receptions. For the sender, create the packet
   // to be sent.
-  if (opMode == NODE_OP_MODE_RECEIVER) attachInterrupt(CC1101_GDO0, messageReceived, RISING);
-  else sender_create_data_packet(& packet);
+  if (opMode == NODE_OP_MODE_RECEIVER){
+    attachInterrupt(CC1101_GDO0, messageReceived, RISING);
+  } 
+  else {
+    sender_create_data_packet(& packet);
+    attachInterrupt(CC1101_GDO0, messageReceived, RISING);
+    }
 
   // Make sure the radio is on RX.
   radio.setRxState();
