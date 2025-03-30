@@ -430,7 +430,6 @@ void CC1101::setPowerDownState()
  */
 bool CC1101::sendData(CCPACKET packet)
 {
-  bool res = false;
   unsigned short remainingBytes = packet.length;
     
   // The radio can only (automatically) handle chunks of up to 64 bytes.
