@@ -13,12 +13,52 @@ CSMA_CONTROL::CSMA_CONTROL(bool (*isChannelFree)()){
 }
 
 
+/**      ____________________
+ *      /                    \
+ *     /                      \
+ *    |     channel used       | <----
+ *     \                      /      |
+ *      \____________________/       |
+ *                 |                 |
+ *                 | check slot      |
+ *                 |                 |
+ *              ________             |
+ *              |       |       No   |
+ *              | free? |------------|
+ *              |_______|
+ *                  |
+ *                  |Yes
+ *                  |
+ *                  |
+ *              ____________
+ *              |           |
+ *              | Wait difs |
+ *              |___________|
+ */
 void CSMA_CONTROL::waitForTurn(){
-    this->checkChannel();
+    notFree:
+    while (!this->checkChannel());
 
-    //
+    //After this, should check if channel is free for difs
+    //Since channel check taks slot amount of time, channel check time is multiple of slot time always
+    //To cover for difs, assumes sifs is 2 slot times for now, close to ieee 802.11 a
+    //This leads to difs being 4 slots
 
-    delayMicroseconds(DIFS);
+    for (size_t i = 0; i < 4; i++){
+        if (!this->checkChannel()){
+            goto notFree;
+        }
+        
+    }
+    
+    
+    while (this->backoffCount > 0){
+        if(this->checkChannel())
+            this->backoffCount -= 1;
+        else
+            goto notFree;
+    }
+    
 }
 
 

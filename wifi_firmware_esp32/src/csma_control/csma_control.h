@@ -1,4 +1,6 @@
-#define BACKOFF_TIME_SLOT 20 //random value again
+//cca execution: 371 microseconds
+
+#define BACKOFF_TIME_SLOT 371 //time for cca check
 #define MAX_BACKOFF_RANGE 2048 //maybe should be a variable for performance testing purposes
 
 //For nav duration these should probably be declared somewhere else
