@@ -43,14 +43,11 @@ void CSMA_CONTROL::waitForTurn(){
     //Since channel check taks slot amount of time, channel check time is multiple of slot time always
     //To cover for difs, assumes sifs is 2 slot times for now, close to ieee 802.11 a
     //This leads to difs being 4 slots
-
     for (size_t i = 0; i < 4; i++){
         if (!this->checkChannel()){
             goto notFree;
         }
-        
     }
-    
     
     while (this->backoffCount > 0){
         if(this->checkChannel())
