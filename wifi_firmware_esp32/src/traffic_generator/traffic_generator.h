@@ -22,7 +22,7 @@
  */
 struct ieeeFrame {
 
-    const uint8_t   frame_control[2] = {0};
+    uint8_t   frame_control[2] = {0};
 
     uint8_t   duration[2];
 
