@@ -64,6 +64,7 @@ CC1101::CC1101(void)
   syncWord[0] = CC1101_DEFVAL_SYNC1;
   syncWord[1] = CC1101_DEFVAL_SYNC0;
   devAddress = CC1101_DEFVAL_ADDR;
+  cca_threshold = CC1101_CCA_DEFAULT_THRESHOLD;
 }
 
 /**
@@ -643,11 +644,7 @@ bool CC1101::cca(void)
        continue ;
     }
 
-// TODO: this should probably be a parameter. Move to a variable that is
-// set on init().
-#define CC1101_CCA_THRESHOLD    -78
-
-    return raw2rssi(radio.readStatusReg(CC1101_RSSI)) < CC1101_CCA_THRESHOLD;
+    return raw2rssi(radio.readStatusReg(CC1101_RSSI)) < cca_threshold;
   }
 }
 

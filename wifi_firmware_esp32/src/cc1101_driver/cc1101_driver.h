@@ -327,6 +327,10 @@ enum RFSTATE
 #define PA_LowPower               0x60
 #define PA_LongDistance           0xC0
 
+
+
+#define CC1101_CCA_DEFAULT_THRESHOLD    -78
+
 /**
  * Class: CC1101
  * 
@@ -336,6 +340,8 @@ enum RFSTATE
 class CC1101
 {
   private:
+
+  int8_t cca_threshold;
 
     /**
      * writeBurstReg
@@ -542,13 +548,19 @@ class CC1101
     /**
      * cca
      * 
-     * reads the current CCA status reported by the radio
-     * This function assumes that the CCA state is available
-     * at pin GDO2. To ensure that, call setMonitorCCA() before
-     * calling this function. Notice that the sendData() and
-     * receiveData() functions override the configuration of 
-     * this pin, so setMonitorCCA() has to be called again
-     * after calling those.
+     * determines the channel state based on the RSSI reported 
+     * by the radio. This function assumes that the radio is on
+     * RX state.
+     * 
+     * Notice that the radio measures the RSSI with a frequency
+     * that is dependent on (Sec. 17.3 of the datasheet):
+     *  - The crystal oscillator
+     *  - The configured reception bandwidth.
+     *  - The filter length.
+     *  
+     * For the default configuration of this library, this results
+     * in the value being updated every ~25 us. So, there is no
+     * point calling this function more frequently than that.
      * 
      * Return:
      *  true (channel is clear) or false (channel is busy)
