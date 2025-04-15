@@ -450,11 +450,21 @@ bool CC1101::sendData(CCPACKET packet)
   // Enable monitoring the TX FIFO through GDO2
   setMonitorTxFifo();
 
+  Serial.printf("DELETE PRINT ON SEND DATA, initial state: %d\n", (int) radio.readStatusReg(CC1101_MARCSTATE));
+
   // Put the radio into the TX state
   setTxState();
 
+  //delay(500);
+
+  int marcState = (int) radio.readStatusReg(CC1101_MARCSTATE);
+
+  Serial.printf("BAABA BABAABAA BAANA; marc value: %d\n", marcState);
+
   // Wait until the transmission starts
   wait_GDO0_high();
+
+  Serial.println(F("Transmittion start"));
 
   // As space becomes available in the FIFO, push more
   // of the packet payload.
@@ -479,6 +489,8 @@ bool CC1101::sendData(CCPACKET packet)
         return false;
       }
     }
+
+    //Serial.println(F("SEND DATA PRINT ON WHILE"));
     
     if (remainingBytes == 8) {
 
@@ -491,6 +503,8 @@ bool CC1101::sendData(CCPACKET packet)
     writeReg(CC1101_TXFIFO, packet.data[packet.length - remainingBytes]);
     remainingBytes--;
   }
+
+  Serial.println("SEND DATA AFTER WHILE LOOP");
 
   // Wait until the end of the packet transmission
   wait_GDO0_low();

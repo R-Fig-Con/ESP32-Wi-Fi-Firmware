@@ -318,9 +318,9 @@ enum RFSTATE
 #define setMonitorRxFifo()        writeReg(CC1101_IOCFG2, 0x01)
 // Enable monitoring the CCA state through GDO2
 #define setMonitorCCA()           writeReg(CC1101_IOCFG2, 0x0E)
-// Disable address check
+// Disable address check; keeps rssi, lqi and crc_ok bits
 #define disableAddressCheck()     writeReg(CC1101_PKTCTRL1, 0x04)
-// Enable address check
+// Enable address check; keeps rssi, lqi and crc_ok bits
 #define enableAddressCheck()      writeReg(CC1101_PKTCTRL1, 0x06)
 
 // PATABLE values
@@ -341,7 +341,7 @@ class CC1101
 {
   private:
 
-  int8_t cca_threshold;
+    int8_t cca_threshold;
 
     /**
      * writeBurstReg
