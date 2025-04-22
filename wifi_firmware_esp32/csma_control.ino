@@ -6,10 +6,18 @@ int random(int min, int max){
 CSMA_CONTROL::CSMA_CONTROL(bool (*isChannelFree)()){
     this->checkChannel = isChannelFree;
 
+    unsigned long start = micros();
+    this->checkChannel();
+    unsigned long end = micros();
+
+    unsigned long duration = end - start;
+
+    this->backoffRepetition = (uint8_t) (duration / BACKOFF_TIME_SLOT) + 1;
+    this->sifsRepetition = (uint8_t) (duration / SIFS) + 1;
+
     this->backoffCount = random(0, this->contentionWindow);
     
 }
-
 
 /**      ____________________
  *      /                    \
@@ -35,20 +43,20 @@ CSMA_CONTROL::CSMA_CONTROL(bool (*isChannelFree)()){
  */
 void CSMA_CONTROL::waitForTurn(){
     notFree:
-    while (!this->checkChannel());
+    while (!difsCheck());
 
     //After this, should check if channel is free for difs
     //Since channel check taks slot amount of time, channel check time is multiple of slot time always
     //To cover for difs, assumes sifs is 2 slot times for now, close to ieee 802.11 a
     //This leads to difs being 4 slots
     for (size_t i = 0; i < 4; i++){
-        if (!this->checkChannel()){
+        if (!difsCheck()){
             goto notFree;
         }
     }
     
     while (this->backoffCount > 0){
-        if(this->checkChannel())
+        if(difsCheck())
             this->backoffCount -= 1;
         else
             goto notFree;
@@ -61,7 +69,7 @@ void CSMA_CONTROL::ackReceived(bool wasReceived){
     if (wasReceived)
     {
         if (this->contentionWindow == MAX_BACKOFF_RANGE)//maximum
-        this->contentionWindow >>= 1;
+            this->contentionWindow >>= 1;
     }
     else{
         if (this->contentionWindow == 2)//assumed minimum
