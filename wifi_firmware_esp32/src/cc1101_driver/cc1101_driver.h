@@ -48,8 +48,8 @@ enum CFREQ
 enum RFSTATE
 {
   RFSTATE_IDLE = 0,
-  RFSTATE_RX,
-  RFSTATE_TX
+  RFSTATE_RX = 13,  //first rx state, stable while no strobe | sync word received (maybe preamble)
+  RFSTATE_TX = 19 //first tx state
 };
 
 #ifdef ESP32

@@ -23,10 +23,6 @@ uint8_t myMacAddress[6];
 CCPACKET packet_to_send;
 
 
-// Packet and frame used by the sender.
-//TRAFFIC_GEN * trf_gen;
-
-
 unsigned long time_marker = 0;
 
 void messageReceived() {
@@ -52,8 +48,7 @@ void setup() {
     radio.setSyncWord(syncWord);
     radio.setCarrierFreq(CFREQ_433);
     radio.disableAddressCheck();
-    
-    //radio.setTxPowerAmp(PA_LowPower); init default
+    radio.setTxPowerAmp(PA_LowPower);
 
     delay(1000);
 
@@ -76,6 +71,13 @@ void setup() {
 
     // Make sure the radio is on RX.
     radio.setRxState();
+
+    #ifdef ESP32
+    Serial.println("ESP32 is defined");
+
+    #else
+    Serial.println(F("Not defined"));
+    #endif 
 }
 
 CCPACKET packet_to_receive;//also to send
@@ -92,15 +94,21 @@ void loop(){
 
 
 ieeeFrame * frame = (ieeeFrame *) packet_to_receive.data;
+
 void receiveAndAcknowledge(){
   attachInterrupt(CC1101_GDO0, messageReceived, RISING);
+  Serial.println(F("TO WAIT FOR PACKET"));
   while(!packetWaiting);
   receiver();
 
   packet_to_receive.length = 0;
   PACKET_TO_ACK(frame);
-  
+
+
   radio.sendData(packet_to_receive);
+  //radio.sendWithWaitPrint(packet_to_receive);
+
+  Serial.printf("PACKET SENT, state: %d in core %d\n", (int) radio.readStatusReg(CC1101_MARCSTATE), xPortGetCoreID());
 
 }
 
@@ -139,7 +147,7 @@ void sender_create_data_packet(CCPACKET * packet) {
  
 void sendAndReceive(){
   Serial.printf("Send and receive, marker: %lu\n", time_marker);
-  sender(packet_to_send);
+  radio.sendData(packet_to_send);
   unsigned long wait_start = micros();
   //Serial.printf("2nd Send and receive, marker: %lu\n", time_marker);
   attachInterrupt(CC1101_GDO0, messageReceived, RISING);
@@ -157,15 +165,6 @@ void sendAndReceive(){
 
 }
 
-void sender(CCPACKET packet_to_send) { 
-  bool b = radio.sendData(packet_to_send);
-  if(b){
-    Serial.print(F("Packet sent; payload: ")); 
-    Serial.println((char *) ( ((ieeeFrame *)(packet_to_send.data))->payload));
-  }else
-    Serial.println(F("Send failed."));
-}
-
 void receiver() {
 
   // Yes. Disable the reception interruption while we handle this packet.
@@ -174,13 +173,44 @@ void receiver() {
   // Try to receive the packet
   if (radio.receiveData(&packet_to_receive) > 0) {
 
-    Serial.println(F("Received packet..."));
+    //Serial.println(F("Received packet..."));
 
     // We received something, but is the packet correct?
     if (!packet_to_receive.crc_ok) {
         Serial.println(F("crc not ok"));
     }
 
+    /*
+    Serial.printf("STATE ON MAIN BEFORE OTHER PRINTS: %d\n", (int) radio.readStatusReg(CC1101_MARCSTATE));
+
+    // Print some physical layer statistics
+    Serial.print(F("lqi: "));
+    Serial.println(radio.raw2lqi(packet_to_receive.lqi));
+    Serial.print(F("rssi: "));
+    Serial.print(radio.raw2rssi(packet_to_receive.rssi));
+    Serial.println(F("dBm"));
+
+    // If the packet seems right, let's process it.
+    if (packet_to_receive.length > 0) {
+
+      // Just print some debug info.
+      Serial.print(F("packet: len "));
+      Serial.println(packet_to_receive.length);
+      Serial.printf("src: %02X:%02X:%02X:%02X:%02X:%02X\n", 
+            frame->addr_src[0],
+            frame->addr_src[1],
+            frame->addr_src[2],
+            frame->addr_src[3],
+            frame->addr_src[4],
+            frame->addr_src[5]);
+      Serial.println(F("data: "));
+      Serial.println((const char *) frame->payload);
+    }
+    
+
+    Serial.printf("STATE ON MAIN AFTER OTHER PRINTS: %d\n", (int) radio.readStatusReg(CC1101_MARCSTATE));
+
+    */
 
   }
 

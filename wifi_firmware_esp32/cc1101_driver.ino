@@ -272,11 +272,8 @@ void CC1101::setCCregs(void)
   writeReg(CC1101_TEST2,  CC1101_DEFVAL_TEST2);
   writeReg(CC1101_TEST1,  CC1101_DEFVAL_TEST1);
   writeReg(CC1101_TEST0,  CC1101_DEFVAL_TEST0);
-  
-  // Send empty packet
-  CCPACKET packet;
-  packet.length = 0;
-  sendData(packet);
+
+  //Serial.printf("state after leaving: %d\n", (int) radio.readStatusReg(CC1101_MARCSTATE));
 }
 
 /**
@@ -450,21 +447,11 @@ bool CC1101::sendData(CCPACKET packet)
   // Enable monitoring the TX FIFO through GDO2
   setMonitorTxFifo();
 
-  Serial.printf("DELETE PRINT ON SEND DATA, initial state: %d\n", (int) radio.readStatusReg(CC1101_MARCSTATE));
-
   // Put the radio into the TX state
   setTxState();
 
-  //delay(500);
-
-  int marcState = (int) radio.readStatusReg(CC1101_MARCSTATE);
-
-  Serial.printf("BAABA BABAABAA BAANA; marc value: %d\n", marcState);
-
   // Wait until the transmission starts
   wait_GDO0_high();
-
-  Serial.println(F("Transmittion start"));
 
   // As space becomes available in the FIFO, push more
   // of the packet payload.
@@ -472,7 +459,7 @@ bool CC1101::sendData(CCPACKET packet)
 
     // Wait until there is data available on the FIFO
     while (getGDO2state()) {
-      if (!getGDO0state() && getGDO2state()) {
+      if (!getGDO0state()) {
 
         Serial.println("Premature end to the transmission!");     
   
@@ -489,8 +476,6 @@ bool CC1101::sendData(CCPACKET packet)
         return false;
       }
     }
-
-    //Serial.println(F("SEND DATA PRINT ON WHILE"));
     
     if (remainingBytes == 8) {
 
@@ -503,8 +488,6 @@ bool CC1101::sendData(CCPACKET packet)
     writeReg(CC1101_TXFIFO, packet.data[packet.length - remainingBytes]);
     remainingBytes--;
   }
-
-  Serial.println("SEND DATA AFTER WHILE LOOP");
 
   // Wait until the end of the packet transmission
   wait_GDO0_low();
@@ -562,14 +545,9 @@ unsigned short CC1101::receiveData(CCPACKET * packet)
   // of the packet payload.
   while (remainingBytes > 0) {
     
-    //Serial.print(remainingBytes);
-    //Serial.println(" bytes remaining...");
     // Wait until there is data available on the FIFO
     while (!getGDO2state()) {
       if (!getGDO0state() && !getGDO2state()) {
-
-        // End of packet, but not enough bytes. Abort.
-        //Serial.println("Aborting reception...");
         setIdleState();       // Enter IDLE state
         flushRxFifo();        // Flush Rx FIFO
         
@@ -671,6 +649,9 @@ bool CC1101::cca(void)
 void CC1101::setRxState(void)
 {
   cmdStrobe(CC1101_SRX);
+
+  //wait for state transition from idle to rx from receive
+  while(radio.readStatusReg(CC1101_MARCSTATE) != RFSTATE_RX);
 }
 
 /**
