@@ -73,7 +73,7 @@ class CSMA_CONTROL
        void waitForTurn();
 
        /**
-        * warns class id ack was received or not
+        * warns class if ack was received or not
         * 
         * adjusts contention window accordingly
         */

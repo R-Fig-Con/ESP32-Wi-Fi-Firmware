@@ -18,29 +18,69 @@ TRAFFIC_GEN * trf_gen;
 
 CSMA_CONTROL * csma_control;
 
+/*
+ * indicates to the code if packet should use automatic response or if is expecting data and code will linearly deal with it
+*/
+bool automaticResponse = true;
 
 TaskHandle_t receiveHandle = NULL;
-
 void messageReceived() {
-    packetWaiting = true;
-    /*
+  if (automaticResponse){
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-    vTaskNotifyGiveFromISR(receiveHandle, &xHigherPriorityTaskWoken);
+    xTaskResumeFromISR(receiveHandle);
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-    */
+  }
+  else{
+    packetWaiting = true;//self started communication; should be an answer, and code should be able to answer linearly
+  }
+    
 
-    //vTaskResume(receiveHandle);
 }
 
-void receiveTask(void* unused_param){
 
+/**
+ * no setup needed, exists to be modified when receiving
+*/
+CCPACKET packet_to_receive;
+ieeeFrame * receiveFrame = (ieeeFrame *) packet_to_receive.data;
+
+//to have parameters defined in setup so it matches an ack packet
+CCPACKET acknowledge_packet; 
+ieeeFrame * acknowledgeFrame = (ieeeFrame *) acknowledge_packet.data;
+
+/**
+ * Task will handle any communication started by another party
+ */
+void receiveAndAnswerTask(void* unused_param){
+
+  //Serial.println("\n\nRepetition\n\n");//Having this seems to cause "Initiating traffic..." to be done twice TODO see
   while(true){
 
-    vTaskSuspend(receiveHandle);
+    vTaskSuspend(receiveHandle);  //suspend self; done on activation and after each receive
 
+    //Serial.println("R&A awake");
     receiver();
 
-    vTaskDelay(1000 / portTICK_PERIOD_MS); // Pause before next check
+    //Serial.println("Received");
+
+    if(PACKET_IS_DATA(receiveFrame)){
+      detachInterrupt(CC1101_GDO0);
+
+      //Warning; This really counts on the packet sent not being interrupted, and therefore causing its failure
+      //Creating prints in this step to check if the packet was sent or not should not cause any grand issues durin testing;
+      if(!radio.sendData(acknowledge_packet)){
+        Serial.println("Response failed, assumed task was interrupted");
+      }
+
+      attachInterrupt(CC1101_GDO0, messageReceived, RISING);
+
+      Serial.println("SENT ACK");
+    }
+    else{
+      Serial.printf("Is actually %d; or %x in hex\n", (uint) receiveFrame->frame_control[0], receiveFrame->frame_control[0]);
+    }
+
+    //vTaskDelay(1000 / portTICK_PERIOD_MS); // Pause before next check
 
   }
       
@@ -69,6 +109,10 @@ void setup() {
 
     delay(1000);
 
+    //acknowledge packet definition
+    acknowledge_packet.length = 0;
+    PACKET_TO_ACK(acknowledgeFrame);
+
     // Print some debug info
     Serial.print(F("CC1101_PARTNUM "));
     Serial.println(radio.readReg(CC1101_PARTNUM, CC1101_STATUS_REGISTER));
@@ -80,18 +124,15 @@ void setup() {
     Serial.println(F("CC1101 radio initialized."));
 
     csma_control = new CSMA_CONTROL(&checkChannel);
-
-
-    attachInterrupt(CC1101_GDO0, messageReceived, RISING);
     
     uint8_t dstMacAddress[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
     trf_gen = new TRAFFIC_GEN(&sender, myMacAddress, dstMacAddress);
     trf_gen->setTime(TRF_GEN_GAUSS, 6000);
     
-    /*
+    
     //creating when there is nothing to receive may cause troubles
     xTaskCreatePinnedToCore(
-      &receiveTask,
+      &receiveAndAnswerTask,
       "receive and send acknowledge",
       10000, //no thought used to decide size
       NULL,
@@ -99,10 +140,12 @@ void setup() {
       &receiveHandle,
       1 //putting related to cc1101 on same core
     );
-    */
+    
 
     // Make sure the radio is on RX.
     radio.setRxState(); //TODO Maybe change to do this in constructor/init
+
+    attachInterrupt(CC1101_GDO0, messageReceived, RISING);
 }
 
 TaskHandle_t generatorHandle = NULL;
@@ -126,9 +169,6 @@ void loop(){
     }
 }
 
-CCPACKET packet_to_receive;
-ieeeFrame * frame = (ieeeFrame *) packet_to_receive.data;
-
 /**
  * requires radio initialization, csma control instance, receive task creation
  * Contains retry logic for now at least
@@ -139,7 +179,7 @@ void sender(CCPACKET packet_to_send) {
 
   send:
 
-  detachInterrupt(CC1101_GDO0);
+  //should be able to answer while waiting for turn, so it cannot be deactivated
 
   if(retryCount == 10){
     Serial.println(F("GIVING UP after retry limit reached"));
@@ -148,36 +188,45 @@ void sender(CCPACKET packet_to_send) {
 
   csma_control->waitForTurn();
 
+  detachInterrupt(CC1101_GDO0);
   bool b = radio.sendData(packet_to_send);
+  attachInterrupt(CC1101_GDO0, messageReceived, RISING);
+
   if(!b){//in protocol should not expect failure here
     Serial.println(F("Send failed."));
     retryCount += 1;
     goto send;
   }
 
-  unsigned long start_time = micros();
-  Serial.println(F("Packet sent"));
+  automaticResponse = false;
 
-  attachInterrupt(CC1101_GDO0, messageReceived, RISING);
+  unsigned long start_time = micros();
 
   while(!packetWaiting){
     //sifs wait
     if(micros() - start_time >= SIFS){
+      //Serial.println("NOT EVEN A RESPONSE RECEIVED");
       retryCount += 1;
+      automaticResponse = true;
+      csma_control->ackReceived(false);
       goto send;
     }
 
   }
 
-
-  receiver();
-
-  //checks if is ack
-  if(!PACKET_IS_ACK(frame)){
+  automaticResponse = true;
+  
+  //checks if is ok and is an ack ack
+  if(receiver() && !PACKET_IS_ACK(receiveFrame)){
+    Serial.println("answer is NOT an ACK");
     retryCount += 1;
+    csma_control->ackReceived(false);
     goto send;
+    
   }
 
+  
+  csma_control->ackReceived(true);
   //to eventually add sucess to register, so it can be accessed by the esp wifi
 
   Serial.println(F("Complete success"));
@@ -185,24 +234,20 @@ void sender(CCPACKET packet_to_send) {
 
 /**
  * Directly affects 'packet_to_receive' global var
+ * returns CCPACKET.crc_ok
  */
-void receiver() {
+bool receiver() {
 
   // Yes. Disable the reception interruption while we handle this packet.
   detachInterrupt(CC1101_GDO0);
 
   // Try to receive the packet
   radio.receiveData(&packet_to_receive);
-
-  Serial.println(F("Received packet..."));
-
-  // We received something, but is the packet correct?
-  if (!packet_to_receive.crc_ok) {
-      Serial.println(F("crc not ok"));
-  }
   
-  // Mark the packet as processed and re-enable the interruption.
+  //only necessary if is not handled by task; probably shoul be placed somewhere else; TODO
   packetWaiting = false;
   attachInterrupt(CC1101_GDO0, messageReceived, RISING);
+
+  return packet_to_receive.crc_ok;
 
 }

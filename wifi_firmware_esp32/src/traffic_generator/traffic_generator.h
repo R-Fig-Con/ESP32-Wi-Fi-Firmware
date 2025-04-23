@@ -9,16 +9,20 @@
 #define TRF_GEN_MAX_MSG_LEN 128 //Better to have a small message and just repeat it several times if we want to send a large packet (uses less memory).
 
 //identifying values in frame control. Taken from book, page 100
+//encapsulates type and subtype
 #define ACK_TYPE_VALUE 0x1D
 #define RTS_TYPE_VALUE 0x1C
 #define CTS_TYPE_VALUE 0x1B
+#define DATA_TYPE_VALUE 0x20 //does not use subtype?
 
 #define PACKET_TO_ACK(f) f->frame_control[0] |= ACK_TYPE_VALUE
 #define PACKET_TO_CTS(f) f->frame_control[0] |= CTS_TYPE_VALUE
-#define PACKET_TO_RTS(f) f->frame_control[0] |= RTS_TYPE_VALUE  
+#define PACKET_TO_RTS(f) f->frame_control[0] |= RTS_TYPE_VALUE
+#define PACKET_TO_DATA(f) f->frame_control[0] |= DATA_TYPE_VALUE   
 
 #define PACKET_IS_ACK(f) f->frame_control[0] == ACK_TYPE_VALUE
 #define PACKET_IS_CTS(f) f->frame_control[0] == CTS_TYPE_VALUE
+#define PACKET_IS_DATA(f) f->frame_control[0] == DATA_TYPE_VALUE
 
 /**
  * Frame format.
