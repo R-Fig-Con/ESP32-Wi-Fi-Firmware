@@ -26,9 +26,7 @@ bool automaticResponse = true;
 TaskHandle_t receiveHandle = NULL;
 void messageReceived() {
   if (automaticResponse){
-    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-    xTaskResumeFromISR(receiveHandle);
-    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+    portYIELD_FROM_ISR(xTaskResumeFromISR(receiveHandle));
   }
   else{
     packetWaiting = true;//self started communication; should be an answer, and code should be able to answer linearly
@@ -143,7 +141,7 @@ void setup() {
     
 
     // Make sure the radio is on RX.
-    radio.setRxState(); //TODO Maybe change to do this in constructor/init
+    radio.setRxState(); //TODO Maybe change to do this in constructor/init of radio
 
     attachInterrupt(CC1101_GDO0, messageReceived, RISING);
 }

@@ -15,10 +15,11 @@
 #define CTS_TYPE_VALUE 0x1B
 #define DATA_TYPE_VALUE 0x20 //does not use subtype?
 
-#define PACKET_TO_ACK(f) f->frame_control[0] |= ACK_TYPE_VALUE
-#define PACKET_TO_CTS(f) f->frame_control[0] |= CTS_TYPE_VALUE
-#define PACKET_TO_RTS(f) f->frame_control[0] |= RTS_TYPE_VALUE
-#define PACKET_TO_DATA(f) f->frame_control[0] |= DATA_TYPE_VALUE   
+//Overriding protocol version
+#define PACKET_TO_ACK(f) f->frame_control[0] = ACK_TYPE_VALUE
+#define PACKET_TO_CTS(f) f->frame_control[0] = CTS_TYPE_VALUE
+#define PACKET_TO_RTS(f) f->frame_control[0] = RTS_TYPE_VALUE
+#define PACKET_TO_DATA(f) f->frame_control[0] = DATA_TYPE_VALUE   
 
 #define PACKET_IS_ACK(f) f->frame_control[0] == ACK_TYPE_VALUE
 #define PACKET_IS_CTS(f) f->frame_control[0] == CTS_TYPE_VALUE
