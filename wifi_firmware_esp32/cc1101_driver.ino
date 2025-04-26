@@ -504,6 +504,7 @@ bool CC1101::sendData(CCPACKET packet)
 
   // Enter back into RX state
   setRxState();
+  setMonitorCCA();
 
   return true;
 }
@@ -594,6 +595,7 @@ unsigned short CC1101::receiveData(CCPACKET * packet)
   
   // Back to RX state
   setRxState();
+  setMonitorCCA();
 
   return packet->length;
 }
@@ -620,28 +622,7 @@ unsigned short CC1101::receiveData(CCPACKET * packet)
  */
 bool CC1101::cca(void) 
 {
-  
-  while(1) {
-
-    byte marcState = radio.readStatusReg(CC1101_MARCSTATE);
-
-    if (marcState == 17) {
-
-      // Radio got into RXFIFOOVERFLOW state (because
-      // some packet was detected by the radio but not
-      // processed by the MCU). We need to go back to 
-      // the RX state so that valid RSSI measurements 
-      // are available again.
-      
-      radio.setIdleState();       // Enter IDLE state
-      radio.flushRxFifo();        // Flush Rx FIFO
-      radio.setRxState();         // Back to RX state
-
-       continue ;
-    }
-
-    return raw2rssi(radio.readStatusReg(CC1101_RSSI)) < cca_threshold;
-  }
+  return radio.readStatusReg(CC1101_PKTSTATUS) && 0x10 != 0;
 }
 
 
