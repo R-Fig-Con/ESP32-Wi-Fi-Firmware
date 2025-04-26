@@ -48,14 +48,27 @@ class CSMA_CONTROL
         * Naturally ocuppies difs time plus whatever extra from not being multiple from checkChannel
         */
        bool difsCheck(){
-        bool a = true;
-    
+  
         for(uint8_t k = 0; k < this->sifsRepetition + this->backoffRepetition; k += 1){
           if(!this->checkChannel())
-            a = false;
+            return false;
         }
       
-        return a;
+        return true;
+       }
+
+       /**
+        * Checks if channel is free for backoff time
+        * 
+        * Naturally ocuppies backoff time plus whatever extra from not being multiple from checkChannel
+        */
+       bool backoffCheck(){
+        for(uint8_t k = 0; k < this->backoffRepetition; k += 1){
+          if(!this->checkChannel())
+            return false;
+        }
+      
+        return true;
        }
 
    public:
