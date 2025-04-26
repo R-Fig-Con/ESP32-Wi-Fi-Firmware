@@ -140,9 +140,6 @@ void setup() {
     );
     
 
-    // Make sure the radio is on RX.
-    radio.setRxState(); //TODO Maybe change to do this in constructor/init of radio
-
     attachInterrupt(CC1101_GDO0, messageReceived, RISING);
 }
 

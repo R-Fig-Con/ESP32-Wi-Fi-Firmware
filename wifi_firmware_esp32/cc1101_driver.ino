@@ -204,6 +204,9 @@ void CC1101::reset(void)
   cc1101_Deselect();                    // Deselect CC1101
 
   setCCregs();                          // Reconfigure CC1101
+
+  setRxState();
+  setMonitorCCA();
 }
 
 /**
@@ -306,6 +309,7 @@ void CC1101::init(uint8_t freq, uint8_t mode)
 
   // Configure PATABLE
   setTxPowerAmp(PA_LowPower);
+
 }
 
 /**
