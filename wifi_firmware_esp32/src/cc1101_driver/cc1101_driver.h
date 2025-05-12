@@ -26,7 +26,6 @@
 #ifndef _CC1101_H
 #define _CC1101_H
 
-#include <Arduino.h>
 #include <SPI.h>
 #include "ccpacket.h"
 
@@ -47,7 +46,7 @@ enum CFREQ
  */
 enum RFSTATE
 {
-  RFSTATE_IDLE = 0,
+  RFSTATE_IDLE = 1,
   RFSTATE_RX = 13,  //first rx state, stable while no strobe | sync word received (maybe preamble)
   RFSTATE_TX = 19 //first tx state
 };
@@ -264,14 +263,14 @@ enum RFSTATE
 #define CC1101_DEFVAL_DEVIATN    0x35        // Modem Deviation Setting
 #define CC1101_DEFVAL_MCSM2      0x07        // Main Radio Control State Machine Configuration
 
-#define CC1101_DEFVAL_MCSM1      0x10        // Main Radio Control State Machine Configuration; CCA_MODE at 1, cca assert on below rssi threshold
+#define CC1101_DEFVAL_MCSM1      0x00        // Main Radio Control State Machine Configuration; CCA_MODE at 1, cca assert on below rssi threshold
 #define CC1101_DEFVAL_MCSM0      0x18        // Main Radio Control State Machine Configuration
 #define CC1101_DEFVAL_FOCCFG     0x16        // Frequency Offset Compensation Configuration
 #define CC1101_DEFVAL_BSCFG      0x6C        // Bit Synchronization Configuration
 #define CC1101_DEFVAL_AGCCTRL2   0x43        // AGC Control
-#define CC1101_DEFVAL_AGCCTRL1   0x45        // AGC Control
+#define CC1101_DEFVAL_AGCCTRL1   0x45        // AGC Control original 0x45 to 0x40
 //#define CC1101_DEFVAL_AGCCTRL1   0x40        // AGC Control
-#define CC1101_DEFVAL_AGCCTRL0   0x91        // AGC Control
+#define CC1101_DEFVAL_AGCCTRL0   0x91        // AGC Control or 0x91 to 0x11
 #define CC1101_DEFVAL_WOREVT1    0x87        // High Byte Event0 Timeout
 #define CC1101_DEFVAL_WOREVT0    0x6B        // Low Byte Event0 Timeout
 #define CC1101_DEFVAL_WORCTRL    0xFB        // Wake On Radio Control
