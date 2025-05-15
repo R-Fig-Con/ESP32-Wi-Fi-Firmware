@@ -52,7 +52,7 @@ void CSMA_CONTROL::waitForTurn(){
     
     
     while (this->backoffCount > 0){
-        if(difsCheck())
+        if(backoffCheck())
             this->backoffCount -= 1;
         else
             goto notFree;

@@ -40,6 +40,19 @@
 #define getGDO2state()  digitalRead(CC1101_GDO2)
 // Wait until GDO0 line goes high
 #define wait_GDO0_high()  while(!getGDO0state())
+#define wait_GDO0_high_test(){\
+  int abcdefg = 0;\
+  while(1){\
+    if (getGDO0state()){\
+      Serial.println("EEEe");\
+      break;\
+    }\
+    abcdefg += 1;\
+    if (abcdefg == 300){\
+      Serial.println(F("STUCK"));\
+    }\
+  }\
+}
 // Wait until GDO0 line goes low
 #define wait_GDO0_low()  while(getGDO0state())
 // Wait until GDO2 line goes high
@@ -255,9 +268,11 @@ void CC1101::setCCregs(void)
   writeReg(CC1101_MCSM0,  CC1101_DEFVAL_MCSM0);
   writeReg(CC1101_FOCCFG,  CC1101_DEFVAL_FOCCFG);
   writeReg(CC1101_BSCFG,  CC1101_DEFVAL_BSCFG);
+
   writeReg(CC1101_AGCCTRL2,  CC1101_DEFVAL_AGCCTRL2);
   writeReg(CC1101_AGCCTRL1,  CC1101_DEFVAL_AGCCTRL1);
   writeReg(CC1101_AGCCTRL0,  CC1101_DEFVAL_AGCCTRL0);
+  
   writeReg(CC1101_WOREVT1,  CC1101_DEFVAL_WOREVT1);
   writeReg(CC1101_WOREVT0,  CC1101_DEFVAL_WOREVT0);
   writeReg(CC1101_WORCTRL,  CC1101_DEFVAL_WORCTRL);
@@ -463,7 +478,7 @@ bool CC1101::sendData(CCPACKET packet)
 
     // Wait until there is data available on the FIFO
     while (getGDO2state()) {
-      if (!getGDO0state()) {
+      if (!getGDO0state() && getGDO2state()) {
 
         Serial.println("Premature end to the transmission!");     
   
@@ -572,7 +587,22 @@ unsigned short CC1101::receiveData(CCPACKET * packet)
       setPacketLengthConfig(CC1101_LENGTH_CONFIG_FIXED);
     }
 
-    // Pull the next byte from the FIFO
+    // Pull the next byte from the FIFO, but first check if there is not
+    // going to be a buffer overflow.
+    if (packet->length - remainingBytes >= CCPACKET_DATA_LEN) {
+
+      // The packet is too large. Abort.
+      //Serial.println("Aborting reception...");
+      setIdleState();       // Enter IDLE state
+      flushRxFifo();        // Flush Rx FIFO
+      
+      // Put the radio back in infinite packet mode  
+      setPacketLengthConfig(CC1101_LENGTH_CONFIG_INFINITE);
+      
+      // Back to RX state
+      setRxState();
+      return 0;
+    }
     packet->data[packet->length - remainingBytes] = readConfigReg(CC1101_RXFIFO);
     remainingBytes--;
   }  
@@ -595,7 +625,6 @@ unsigned short CC1101::receiveData(CCPACKET * packet)
   
   // Back to RX state
   setRxState();
-  //setMonitorCCA();
 
   return packet->length;
 }
@@ -622,7 +651,7 @@ unsigned short CC1101::receiveData(CCPACKET * packet)
  */
 bool CC1101::cca(void) 
 {
-  //eturn getGDO2state();
+  //return getGDO2state();
 
   
   while(1) {

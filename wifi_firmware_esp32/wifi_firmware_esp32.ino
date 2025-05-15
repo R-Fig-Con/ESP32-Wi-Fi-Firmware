@@ -42,9 +42,9 @@ void messageReceived() {
 CCPACKET packet_to_receive;
 ieeeFrame * receiveFrame = (ieeeFrame *) packet_to_receive.data;
 
-//to have parameters defined in setup so it matches an ack packet
-CCPACKET acknowledge_packet; 
-ieeeFrame * acknowledgeFrame = (ieeeFrame *) acknowledge_packet.data;
+//can be either cts or ack
+CCPACKET answer_packet; 
+ieeeFrame * answerFrame = (ieeeFrame *) answer_packet.data;
 
 /**
  * Task will handle any communication started by another party
@@ -59,14 +59,15 @@ void receiveAndAnswerTask(void* unused_param){
     //Serial.println("R&A awake");
     receiver();
 
-    //Serial.println("Received");
+    Serial.println("Received frame on response task");
 
     if(PACKET_IS_DATA(receiveFrame)){
       detachInterrupt(CC1101_GDO0);
 
+      PACKET_TO_ACK(answerFrame);
       //Warning; This really counts on the packet sent not being interrupted, and therefore causing its failure
-      //Creating prints in this step to check if the packet was sent or not should not cause any grand issues durin testing;
-      if(!radio.sendData(acknowledge_packet)){
+      //Creating prints in this step to check if the packet was sent or not should not cause any grand issues during testing;
+      if(!radio.sendData(answer_packet)){
         Serial.println("Response failed, assumed task was interrupted");
       }
 
@@ -74,8 +75,22 @@ void receiveAndAnswerTask(void* unused_param){
 
       Serial.println("SENT ACK");
     }
+    else if (PACKET_IS_RTS(receiveFrame)){
+      detachInterrupt(CC1101_GDO0);
+
+      PACKET_TO_CTS(answerFrame);
+      //Warning; This really counts on the packet sent not being interrupted, and therefore causing its failure
+      //Creating prints in this step to check if the packet was sent or not should not cause any grand issues during testing;
+      if(!radio.sendData(answer_packet)){
+        Serial.println("Response failed, assumed task was interrupted");
+      }
+
+      attachInterrupt(CC1101_GDO0, messageReceived, RISING);
+
+      Serial.println("SENT CTS");
+    }
     else{
-      Serial.printf("Is actually %d; or %x in hex\n", (uint) receiveFrame->frame_control[0], receiveFrame->frame_control[0]);
+      Serial.printf("Response task, frame control %d; or 0x%x (hex) was not recognized\n", (uint) receiveFrame->frame_control[0], receiveFrame->frame_control[0]);
     }
 
     //vTaskDelay(1000 / portTICK_PERIOD_MS); // Pause before next check
@@ -87,6 +102,15 @@ void receiveAndAnswerTask(void* unused_param){
 bool checkChannel(){  
   return radio.cca();
 }
+
+
+
+/**
+ * probably not a good idea to use either receive/answer variable packets due to misuse could cause
+ * packet change from interruption, but could be done
+*/
+CCPACKET rts_packet;
+ieeeFrame * rtsFrame = (ieeeFrame *) rts_packet.data;
 
 void setup() {
 
@@ -107,10 +131,6 @@ void setup() {
 
     delay(1000);
 
-    //acknowledge packet definition
-    acknowledge_packet.length = 0;
-    PACKET_TO_ACK(acknowledgeFrame);
-
     // Print some debug info
     Serial.print(F("CC1101_PARTNUM "));
     Serial.println(radio.readReg(CC1101_PARTNUM, CC1101_STATUS_REGISTER));
@@ -122,6 +142,16 @@ void setup() {
     Serial.println(F("CC1101 radio initialized."));
 
     csma_control = new CSMA_CONTROL(&checkChannel);
+
+
+    //answer packet definition
+    answer_packet.length = 0;
+
+    //rts packet definition
+    rts_packet.length = 0;
+    PACKET_TO_RTS(rtsFrame);
+    Serial.print(F("Frame control of rts: "));
+    Serial.println(rtsFrame->frame_control[0]);
     
     uint8_t dstMacAddress[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
     trf_gen = new TRAFFIC_GEN(&sender, myMacAddress, dstMacAddress);
@@ -151,13 +181,14 @@ void generatorTask(void* unusedParam){
 
 void loop(){
     if(!trf_gen->isRunning()){
-        Serial.println(F("Initiating traffic...")); 
+        Serial.print(F("Initiating traffic..., loop has priority ")); 
+        Serial.println(uxTaskPriorityGet(NULL));
         xTaskCreatePinnedToCore(
           &generatorTask,     // Function to execute
           "traffic generator",   // Name of the task
           10000,      // Stack size
           NULL,      // Task parameters
-          1,         // Priority
+          2,         // Priority
           &generatorHandle,      // Task handle
           1          // Core 1
         );
@@ -170,7 +201,15 @@ void loop(){
  */
 void sender(CCPACKET packet_to_send) { 
 
+  Serial.println(F("TO SEND"));
+
   uint8_t retryCount = 0;
+
+  unsigned long start_time; //used for both rts and data wait
+
+  //saves value of sendData on rts and data send
+  //To eliminate at some point when its certain code does not interrupt send
+  bool b; 
 
   send:
 
@@ -180,11 +219,46 @@ void sender(CCPACKET packet_to_send) {
     Serial.println(F("GIVING UP after retry limit reached"));
     return;
   }
-
+  //Serial.println(radio.readStatusReg(CC1101_MARCSTATE));
   csma_control->waitForTurn();
 
+  //Serial.println(F("OUT OF CSMA_WAIT"));
+
+  //Serial.println(radio.readStatusReg(CC1101_MARCSTATE));
+   /*
   detachInterrupt(CC1101_GDO0);
-  bool b = radio.sendData(packet_to_send);
+  b = radio.sendData(rts_packet);
+  attachInterrupt(CC1101_GDO0, messageReceived, RISING);
+
+  //Serial.print(F("Frame control of sent: "));
+  //Serial.println(rtsFrame->frame_control[0]);
+
+  if(!b){//in protocol should not expect failure here
+    Serial.println(F("Send rts failed."));
+    retryCount += 1;
+    goto send;
+  }
+
+  automaticResponse = false;
+
+  start_time = micros();
+
+  while(!packetWaiting){
+    //sifs wait
+    if(micros() - start_time >= SIFS){
+      Serial.println(F("WAIT FOR CTS FAILED"));
+      retryCount += 1;
+      automaticResponse = true;
+      csma_control->ackReceived(false);
+      goto send;
+    }
+
+  }
+
+   */
+
+  detachInterrupt(CC1101_GDO0);
+  b = radio.sendData(packet_to_send);
   attachInterrupt(CC1101_GDO0, messageReceived, RISING);
 
   if(!b){//in protocol should not expect failure here
@@ -194,13 +268,11 @@ void sender(CCPACKET packet_to_send) {
   }
 
   automaticResponse = false;
-
-  unsigned long start_time = micros();
+  start_time = micros();
 
   while(!packetWaiting){
     //sifs wait
     if(micros() - start_time >= SIFS){
-      //Serial.println("NOT EVEN A RESPONSE RECEIVED");
       retryCount += 1;
       automaticResponse = true;
       csma_control->ackReceived(false);
