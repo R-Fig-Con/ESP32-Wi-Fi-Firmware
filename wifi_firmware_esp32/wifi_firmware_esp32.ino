@@ -57,7 +57,9 @@ void receiveAndAnswerTask(void* unused_param){
     vTaskSuspend(receiveHandle);  //suspend self; done on activation and after each receive
 
     //Serial.println("R&A awake");
-    receiver();
+    if(!receiver()){
+      continue;
+    }
 
     //Serial.println("Received frame on response task");
 
@@ -109,8 +111,6 @@ void receiveAndAnswerTask(void* unused_param){
       Serial.println((const char *) receiveFrame->payload);
       */
     }
-
-    //vTaskDelay(1000 / portTICK_PERIOD_MS); // Pause before next check
 
   }
       
@@ -176,7 +176,6 @@ void setup() {
     trf_gen->setTime(TRF_GEN_GAUSS, 6000);
     
     
-    //creating when there is nothing to receive may cause troubles
     xTaskCreatePinnedToCore(
       &receiveAndAnswerTask,
       "receive and send acknowledge",
