@@ -79,7 +79,7 @@ class TRAFFIC_GEN
     /**
      * Indicates if the module is running.
      */
-    volatile bool running;
+    bool running;
 
     /**
      * Function to be called to send a packet.

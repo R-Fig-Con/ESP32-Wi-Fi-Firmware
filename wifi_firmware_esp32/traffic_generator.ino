@@ -6,9 +6,6 @@ TRAFFIC_GEN::TRAFFIC_GEN(void (* sendDataF)(CCPACKET), uint8_t my_addr[6], uint8
     ieeeFrame * trf_frame = (ieeeFrame *) this->packet.data;
     PACKET_TO_DATA(trf_frame);
 
-    //Serial.print("frame_control: ");
-    //Serial.println(trf_frame->frame_control[0]);//NEEDS THIS PRINT?
-
     memcpy(trf_frame->addr_src, my_addr, 6);
     memcpy(trf_frame->addr_dest, destination_addr, 6);
 
