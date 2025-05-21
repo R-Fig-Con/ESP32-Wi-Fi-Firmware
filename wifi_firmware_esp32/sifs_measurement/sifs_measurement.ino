@@ -11,10 +11,8 @@
 */
 
 enum nodeOpMode {
-
-  NODE_OP_MODE_RECEIVER,
-  NODE_OP_MODE_TRANSMITTER
-  
+  NODE_OP_MODE_RECEIVER, //answers
+  NODE_OP_MODE_TRANSMITTER //starts and measures
 };
 
 CC1101 radio;
@@ -39,13 +37,29 @@ ieeeFrame * receiveFrame = (ieeeFrame *) packet_to_receive.data;
 CCPACKET answer_packet; 
 ieeeFrame * answerFrame = (ieeeFrame *) answer_packet.data;
 
+
+unsigned long time_marker = 0;
+
+void messageReceived() {
+    time_marker = micros();
+    packetWaiting = true;
+}
+
+
+void answerInterrupt(){
+  //Serial.println(F("HELLO"));
+  //taskYIELD_FROM_ISR();
+  //taskYIELD_FROM_ISR(xTaskResumeFromISR(receiveHandle));
+  portYIELD_FROM_ISR(xTaskResumeFromISR(receiveHandle));
+}
+
 void receiveAndAnswerTask(void* unused_param){
 
   while(true){
 
     vTaskSuspend(receiveHandle);  //suspend self; done on activation and after each receive
 
-    //Serial.println(F("ANSWER TASK CREATED"));
+    Serial.println(F("ANSWER TASK awakened"));
     if(!receiver()){
       Serial.println(F("answer task: bad package"));
       continue;
@@ -61,7 +75,7 @@ void receiveAndAnswerTask(void* unused_param){
         Serial.println("Response failed, assumed task was interrupted");
       }
 
-      attachInterrupt(CC1101_GDO0, messageReceived, RISING);
+      attachInterrupt(CC1101_GDO0, answerInterrupt, RISING);
 
 
       Serial.println("SENT ACK");
@@ -76,7 +90,7 @@ void receiveAndAnswerTask(void* unused_param){
         Serial.println("Response failed, assumed task was interrupted");
       }
 
-      attachInterrupt(CC1101_GDO0, messageReceived, RISING);
+      attachInterrupt(CC1101_GDO0, answerInterrupt, RISING);
 
       Serial.println("SENT CTS");
     }
@@ -101,27 +115,9 @@ void receiveAndAnswerTask(void* unused_param){
     }
 
   }
-      
+
+   Serial.println(F("Out of while loop. Should be impossible"));   
 }
-
-unsigned long time_marker = 0;
-/*
- * indicates to the code if packet should use automatic response or if is expecting data and code will linearly deal with it
-*/
-bool automaticResponse = true;
-
-void messageReceived() {
-
-  if (automaticResponse){
-    portYIELD_FROM_ISR(xTaskResumeFromISR(receiveHandle));
-  }
-  else{
-    time_marker = micros();
-    packetWaiting = true;//self started communication; should be an answer, and code should be able to answer linearly
-  }
-
-}
-
 
 void setup() {
     // Serial communication for debug
@@ -157,27 +153,26 @@ void setup() {
     opMode = NODE_OP_MODE_RECEIVER;
     //opMode = NODE_OP_MODE_TRANSMITTER;
 
+    //Serial.print(F("Size of ieeeFrame struct: ")); Serial.println(sizeof(ieeeFrame));
+
     if (opMode == NODE_OP_MODE_RECEIVER) {
         xTaskCreatePinnedToCore(
           &receiveAndAnswerTask,
           "receive and send acknowledge",
           10000, //no thought used to decide size
           NULL,
-          10, // believe it should be bigger than traffic generation
+          10, // should be bigger than traffic generation
           &receiveHandle,
           1 //putting related to cc1101 on same core
         );
 
         Serial.println(F("ANSWER TASK CREATED"));
 
-        automaticResponse = true; // uses response task
-
-        attachInterrupt(CC1101_GDO0, messageReceived, RISING); //activates interrupt, never disables it   
+        attachInterrupt(CC1101_GDO0, answerInterrupt, RISING); //activates interrupt, never disables it   
     }
     else {
         sender_create_data_packet(&packet_to_send); 
         Serial.println(F("Starts communication, waits for answer"));
-        automaticResponse = false; // handles itself
     }
 
 }
@@ -185,10 +180,10 @@ void setup() {
 
 void loop(){
   
-    if(opMode == NODE_OP_MODE_TRANSMITTER){
-        sendAndReceive();
-        delay(40000);
-    }
+  if(opMode == NODE_OP_MODE_TRANSMITTER){
+    sendAndReceive();
+    delay(40000);
+  }
     
 }
 
@@ -199,29 +194,34 @@ void sender_create_data_packet(CCPACKET * packet) {
   // Fill the MAC address.
   memcpy(f->addr_src, myMacAddress, 6);
 
-  // Fill the payload. Start by adding a sequence number.
-  // TODO: We will certainly want this sequence number to be 
-  // binary in the final version. We are using strings
-  // here just ti simplify debug.
-  sprintf((char *) f->payload, "%08X ", seqNum++);
-
-  // Now, fill the remainder of the payload with some 
-  // data (just to have something that is verificable on
-  // the receiver end).
-  // TODO: this can be safely removed on the final version,
-  // as the payload itself is not going to be important.
-  int l = strlen((char *) f->payload);
-  int i;
-  for (i = 0; i < 1000; i++) {
-
-    f->payload[l++] = (char) ((i % 42) + 48);
-  }
-  f->payload[l] = (char) 0;
   
-  // Set the packet length. It is the length of the payload
-  // because it is a string, remember to count the \0 at the end,
-  // plus the 6 bytes of the MAC address.
-  packet->length = strlen((char *) f->payload)  + 1 + 6;
+    // Fill the payload. Start by adding a sequence number.
+    // TODO: We will certainly want this sequence number to be 
+    // binary in the final version. We are using strings
+    // here just to simplify debug.
+    //    sprintf((char *) f->payload, "%08X ", seqNum++);
+
+    // Now, fill the remainder of the payload with some 
+    // data (just to have something that is verificable on
+    // the receiver end).
+    // TODO: this can be safely removed on the final version,
+    // as the payload itself is not going to be important.
+    int l = 0;
+    for (int i = 0; i < 1000; i++) {
+      f->payload[l++] = (char) ((i % 42) + 48);
+    }
+    f->payload[l] = (char) 0;
+
+    // Set the packet length. It is the length of the payload
+    // because it is a string, remember to count the \0 at the end,
+    // plus the 6 bytes of the MAC address.
+    packet->length = strlen((char *) f->payload)  + 1 + 6;
+  
+  
+  //packet->length = 0;
+
+  Serial.print("PACKAGE TO SEND SIZE: ");
+  Serial.println(packet->length);
 
   PACKET_TO_RTS(f);
 }
@@ -230,12 +230,12 @@ void sendAndReceive(){
   Serial.printf("Send and receive, marker: %lu\n", time_marker);
   radio.sendData(packet_to_send);
   unsigned long wait_start = micros();
-  //Serial.printf("2nd Send and receive, marker: %lu\n", time_marker);
+  //Serial.println(F("TODO DELETE SOLVE TEST"));
   attachInterrupt(CC1101_GDO0, messageReceived, RISING);
 
   unsigned long c = 0;
   while(!packetWaiting){
-    //Serial.println(F("LOOP\n"));//Necesary to detect? TODO CHECK
+    //Serial.println(F("LOOP\n"));// not necessary if is volatile
     c += 1;
   }
 
@@ -249,6 +249,8 @@ void sendAndReceive(){
 /**
  * Directly affects 'packet_to_receive' global var
  * returns CCPACKET.crc_ok
+ *
+ * Even if attavhes messageReceived for answer too, it makes no difference in this case since it will be removed after
  */
 bool receiver() {
 
@@ -257,6 +259,8 @@ bool receiver() {
 
   radio.receiveData(&packet_to_receive);
   
+  // Serial.println(packet_to_receive.length);
+
   //only necessary if is not handled by task; probably should be placed somewhere else; TODO
   packetWaiting = false;
   attachInterrupt(CC1101_GDO0, messageReceived, RISING);

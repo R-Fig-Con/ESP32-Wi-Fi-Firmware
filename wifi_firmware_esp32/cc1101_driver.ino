@@ -544,6 +544,7 @@ unsigned short CC1101::receiveData(CCPACKET * packet)
 
   // Wait for enough bytes on the RX FIFO
   wait_GDO2_high();
+  Serial.println(F("AAAAAAAAAAAAA"));
   
   // Read the packet size
   readBurstReg((byte *) & (packet->length), CC1101_RXFIFO, sizeof(packet->length));
