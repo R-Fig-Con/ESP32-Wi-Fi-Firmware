@@ -59,7 +59,7 @@ void receiveAndAnswerTask(void* unused_param){
     //Serial.println("R&A awake");
     receiver();
 
-    Serial.println("Received frame on response task");
+    //Serial.println("Received frame on response task");
 
     if(PACKET_IS_DATA(receiveFrame)){
       detachInterrupt(CC1101_GDO0);
@@ -72,6 +72,7 @@ void receiveAndAnswerTask(void* unused_param){
       }
 
       attachInterrupt(CC1101_GDO0, messageReceived, RISING);
+
 
       Serial.println("SENT ACK");
     }
@@ -91,6 +92,22 @@ void receiveAndAnswerTask(void* unused_param){
     }
     else{
       Serial.printf("Response task, frame control %d; or 0x%x (hex) was not recognized\n", (uint) receiveFrame->frame_control[0], receiveFrame->frame_control[0]);
+
+      /*
+      Serial.print(F("packet: len "));
+      Serial.println(packet_to_receive.length);
+      Serial.println(F("data: "));
+      Serial.printf("src: %02X:%02X:%02X:%02X:%02X:%02X\n", 
+            receiveFrame->addr_dest[0], 
+            receiveFrame->addr_dest[1], 
+            receiveFrame->addr_dest[2], 
+            receiveFrame->addr_dest[3], 
+            receiveFrame->addr_dest[4], 
+            receiveFrame->addr_dest[5]);
+      Serial.printf("frame_control[1]; %d; duration[0]: %d\n", (int) receiveFrame->frame_control[1], (int) receiveFrame->duration[0]);
+      Serial.print(F("Payload: "));
+      Serial.println((const char *) receiveFrame->payload);
+      */
     }
 
     //vTaskDelay(1000 / portTICK_PERIOD_MS); // Pause before next check
@@ -148,7 +165,8 @@ void setup() {
     answer_packet.length = 0;
 
     //rts packet definition
-    rts_packet.length = 0;
+    rts_packet.length = 20;
+    memcpy(receiveFrame->payload, "CONTENT", 7);
     PACKET_TO_RTS(rtsFrame);
     Serial.print(F("Frame control of rts: "));
     Serial.println(rtsFrame->frame_control[0]);
@@ -225,7 +243,7 @@ void sender(CCPACKET packet_to_send) {
   //Serial.println(F("OUT OF CSMA_WAIT"));
 
   //Serial.println(radio.readStatusReg(CC1101_MARCSTATE));
-   /*
+  ///*
   detachInterrupt(CC1101_GDO0);
   b = radio.sendData(rts_packet);
   attachInterrupt(CC1101_GDO0, messageReceived, RISING);
@@ -255,7 +273,7 @@ void sender(CCPACKET packet_to_send) {
 
   }
 
-   */
+  //*/
 
   detachInterrupt(CC1101_GDO0);
   b = radio.sendData(packet_to_send);
