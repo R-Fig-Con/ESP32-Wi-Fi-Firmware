@@ -48,7 +48,7 @@
       break;\
     }\
     abcdefg += 1;\
-    if (abcdefg == 300){\
+    if (abcdefg == 1800){\
       Serial.println(F("STUCK"));\
     }\
   }\
@@ -57,6 +57,7 @@
 #define wait_GDO0_low()  while(getGDO0state())
 // Wait until GDO2 line goes high
 #define wait_GDO2_high()  while(!getGDO2state())
+#define wait_GDO2_high_test()  while(!getGDO2state()){Serial.println(readStatusReg(CC1101_RXBYTES));}
 // Wait until GDO0 line goes low
 #define wait_GDO2_low()  while(getGDO2state())
 
@@ -218,7 +219,6 @@ void CC1101::reset(void)
 
   setCCregs();                          // Reconfigure CC1101
 
-  setRxState();
   //setMonitorCCA();
 }
 
@@ -291,7 +291,6 @@ void CC1101::setCCregs(void)
   writeReg(CC1101_TEST1,  CC1101_DEFVAL_TEST1);
   writeReg(CC1101_TEST0,  CC1101_DEFVAL_TEST0);
 
-  //Serial.printf("state after leaving: %d\n", (int) radio.readStatusReg(CC1101_MARCSTATE));
 }
 
 /**
@@ -470,7 +469,7 @@ bool CC1101::sendData(CCPACKET packet)
   setTxState();
 
   // Wait until the transmission starts
-  wait_GDO0_high();
+  wait_GDO0_high_test();
 
   // As space becomes available in the FIFO, push more
   // of the packet payload.
@@ -544,7 +543,7 @@ unsigned short CC1101::receiveData(CCPACKET * packet)
 
   // Wait for enough bytes on the RX FIFO
   wait_GDO2_high();
-  Serial.println(F("AAAAAAAAAAAAA"));
+  //Serial.println(F("AAAAAAAAAAAAA"));
   
   // Read the packet size
   readBurstReg((byte *) & (packet->length), CC1101_RXFIFO, sizeof(packet->length));
@@ -671,7 +670,7 @@ bool CC1101::cca(void)
       radio.flushRxFifo();        // Flush Rx FIFO
       radio.setRxState();         // Back to RX state
 
-       continue ;
+      continue ;
     }
 
     return raw2rssi(radio.readStatusReg(CC1101_RSSI)) < cca_threshold;

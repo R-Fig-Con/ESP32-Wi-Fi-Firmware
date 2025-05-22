@@ -188,6 +188,8 @@ void setup() {
     
 
     attachInterrupt(CC1101_GDO0, messageReceived, RISING);
+
+    radio.setRxState();
 }
 
 TaskHandle_t generatorHandle = NULL;

@@ -47,9 +47,6 @@ void messageReceived() {
 
 
 void answerInterrupt(){
-  //Serial.println(F("HELLO"));
-  //taskYIELD_FROM_ISR();
-  //taskYIELD_FROM_ISR(xTaskResumeFromISR(receiveHandle));
   portYIELD_FROM_ISR(xTaskResumeFromISR(receiveHandle));
 }
 
@@ -96,22 +93,6 @@ void receiveAndAnswerTask(void* unused_param){
     }
     else{
       Serial.printf("Response task, frame control %d; or 0x%x (hex) was not recognized\n", (uint) receiveFrame->frame_control[0], receiveFrame->frame_control[0]);
-
-      /*
-      Serial.print(F("packet: len "));
-      Serial.println(packet_to_receive.length);
-      Serial.println(F("data: "));
-      Serial.printf("src: %02X:%02X:%02X:%02X:%02X:%02X\n", 
-            receiveFrame->addr_dest[0], 
-            receiveFrame->addr_dest[1], 
-            receiveFrame->addr_dest[2], 
-            receiveFrame->addr_dest[3], 
-            receiveFrame->addr_dest[4], 
-            receiveFrame->addr_dest[5]);
-      Serial.printf("frame_control[1]; %d; duration[0]: %d\n", (int) receiveFrame->frame_control[1], (int) receiveFrame->duration[0]);
-      Serial.print(F("Payload: "));
-      Serial.println((const char *) receiveFrame->payload);
-      */
     }
 
   }
@@ -175,6 +156,7 @@ void setup() {
         Serial.println(F("Starts communication, waits for answer"));
     }
 
+    radio.setRxState();
 }
 
 
@@ -207,7 +189,7 @@ void sender_create_data_packet(CCPACKET * packet) {
     // TODO: this can be safely removed on the final version,
     // as the payload itself is not going to be important.
     int l = 0;
-    for (int i = 0; i < 1000; i++) {
+    for (int i = 0; i < 2000; i++) {
       f->payload[l++] = (char) ((i % 42) + 48);
     }
     f->payload[l] = (char) 0;
