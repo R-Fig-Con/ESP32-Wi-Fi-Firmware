@@ -23,8 +23,6 @@
  * Creation date: 03/03/2011
  */
 
-//#include "cc1101_driver.h"
-
 /**
  * Macros
  */
@@ -49,7 +47,7 @@
     }\
     abcdefg += 1;\
     if (abcdefg == 1800){\
-      Serial.println(F("STUCK"));\
+      Serial.print(F("STUCK, ")); Serial.println(readStatusReg(CC1101_MARCSTATE));\
     }\
   }\
 }
@@ -469,7 +467,7 @@ bool CC1101::sendData(CCPACKET packet)
   setTxState();
 
   // Wait until the transmission starts
-  wait_GDO0_high_test();
+  wait_GDO0_high();
 
   // As space becomes available in the FIFO, push more
   // of the packet payload.

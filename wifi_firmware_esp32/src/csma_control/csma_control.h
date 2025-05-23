@@ -1,7 +1,8 @@
+#include "contention_backoff.h"
+
 #define SIFS 2100 //Per most current measurement, should be at least 2000
 
 #define BACKOFF_TIME_SLOT 1182 //following proprtion of ieee 802.11a between sifs and backoff slot
-#define MAX_BACKOFF_RANGE 2048 //maybe should be a variable for performance testing purposes
 
 //For nav duration these should probably be declared somewhere else
 
@@ -12,10 +13,11 @@
 class CSMA_CONTROL
 {
    private:
-      /**
-        * maximum backoff slots it currently allows
+
+       /**
+        * Chosen contention algorithm
         */
-       uint8_t contentionWindow = 2;
+       CONTENTION_BACKOFF* contentionAlgorithm = NULL;
 
        /**
         * number of slots it has to wait until it is free to try
@@ -78,7 +80,7 @@ class CSMA_CONTROL
         *
         * 'isChannelFree' function to check if medium is free
         */
-       CSMA_CONTROL(bool (*isChannelFree)());
+       CSMA_CONTROL(bool (*isChannelFree)(), CONTENTION_BACKOFF* contentionBackoff);
 
        /**
         * Waits for its turn to access the channel

@@ -5,6 +5,39 @@
 #include "src/cc1101_driver/ccpacket.h"
 #include "src/traffic_generator/traffic_generator.h"
 #include "src/csma_control/csma_control.h"
+//#include "src/csma_control/contention_backoff.h"
+
+
+/**
+ * multiple increase, linear decrease
+*/
+class MILD_BACKOFF: public CONTENTION_BACKOFF{
+
+  void reduceContentionWindow(){
+    uint8_t newWindow = this->contentionWindow - 1;
+
+    if (newWindow >= this->minimum){
+      this->contentionWindow = newWindow;
+    }
+  }
+
+  
+  void increaseContentionWindow(){
+    uint8_t newWindow = this->contentionWindow << 1;
+
+    if (newWindow <= this->maximum){
+      this->contentionWindow = newWindow;
+    }
+  }
+
+  public:
+     MILD_BACKOFF(){
+      this->minimum = 15;
+      this->contentionWindow = 15;
+      this->maximum = 1023;
+     }
+
+};
 
 CC1101 radio;
 
@@ -158,7 +191,7 @@ void setup() {
 
     Serial.println(F("CC1101 radio initialized."));
 
-    csma_control = new CSMA_CONTROL(&checkChannel);
+    csma_control = new CSMA_CONTROL(&checkChannel, new MILD_BACKOFF());
 
 
     //answer packet definition
@@ -252,11 +285,11 @@ void sender(CCPACKET packet_to_send) {
   //Serial.print(F("Frame control of sent: "));
   //Serial.println(rtsFrame->frame_control[0]);
 
-  if(!b){//in protocol should not expect failure here
-    Serial.println(F("Send rts failed."));
-    retryCount += 1;
-    goto send;
-  }
+  //if(!b){//in protocol should not expect failure here
+    //Serial.println(F("Send rts failed."));
+    //retryCount += 1;
+    //goto send;
+  //}
 
   automaticResponse = false;
 
@@ -274,17 +307,27 @@ void sender(CCPACKET packet_to_send) {
 
   }
 
+  //checks if is ok and is an ack ack
+  if(receiver() && !PACKET_IS_CTS(receiveFrame)){
+    Serial.println(F("answer NOT a CTS"));
+    retryCount += 1;
+    csma_control->ackReceived(false);
+    goto send;
+    
+  }
+
   //*/
 
   detachInterrupt(CC1101_GDO0);
   b = radio.sendData(packet_to_send);
   attachInterrupt(CC1101_GDO0, messageReceived, RISING);
 
-  if(!b){//in protocol should not expect failure here
-    Serial.println(F("Send failed."));
-    retryCount += 1;
-    goto send;
-  }
+
+  //if(!b){//in protocol should not expect failure here
+    //Serial.println(F("Send failed."));
+    //retryCount += 1;
+    //goto send;
+  //}
 
   automaticResponse = false;
   start_time = micros();
@@ -292,6 +335,7 @@ void sender(CCPACKET packet_to_send) {
   while(!packetWaiting){
     //sifs wait
     if(micros() - start_time >= SIFS){
+      Serial.println(F("No ack"));
       retryCount += 1;
       automaticResponse = true;
       csma_control->ackReceived(false);
