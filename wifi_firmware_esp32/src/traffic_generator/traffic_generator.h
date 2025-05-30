@@ -33,7 +33,7 @@ struct ieeeFrame {
 
     uint8_t   frame_control[2] = {0};
 
-    uint8_t   duration[2];
+    uint16_t   duration;
 
     // Destination address
     uint8_t   addr_dest[6];

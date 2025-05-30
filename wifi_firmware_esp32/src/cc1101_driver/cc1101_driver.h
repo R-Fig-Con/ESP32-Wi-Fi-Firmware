@@ -637,6 +637,13 @@ class CC1101
    *  the LQI.
    */
   int raw2lqi(char raw);
+
+  /**
+   * Calculates the estimated time needed to transmit a packet
+   * 
+   * @param packet the packet being sent
+   */
+  unsigned short transmittionTime(CCPACKET packet);
   
 };
 

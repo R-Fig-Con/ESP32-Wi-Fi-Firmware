@@ -64,10 +64,7 @@ void messageReceived() {
   else{
     packetWaiting = true;//self started communication; should be an answer, and code should be able to answer linearly
   }
-    
-
 }
-
 
 /**
  * no setup needed, exists to be modified when receiving
@@ -100,6 +97,7 @@ void receiveAndAnswerTask(void* unused_param){
       detachInterrupt(CC1101_GDO0);
 
       PACKET_TO_ACK(answerFrame);
+      answerFrame->duration = receiveFrame->duration - SIFS - radio.transmittionTime(packet_to_receive); //receive time could be saved
       //Warning; This really counts on the packet sent not being interrupted, and therefore causing its failure
       //Creating prints in this step to check if the packet was sent or not should not cause any grand issues during testing;
       if(!radio.sendData(answer_packet)){
@@ -115,6 +113,7 @@ void receiveAndAnswerTask(void* unused_param){
       detachInterrupt(CC1101_GDO0);
 
       PACKET_TO_CTS(answerFrame);
+      answerFrame->duration = receiveFrame->duration - SIFS - radio.transmittionTime(packet_to_receive); //receive time could be saved
       //Warning; This really counts on the packet sent not being interrupted, and therefore causing its failure
       //Creating prints in this step to check if the packet was sent or not should not cause any grand issues during testing;
       if(!radio.sendData(answer_packet)){
@@ -154,6 +153,17 @@ bool checkChannel(){
 }
 
 
+/**
+ * calculates amount of time needed at beggining of transmittion
+ * Used for NAV
+ * 
+ * Assumes as the rest of the code data can be sent in one burst
+ * 
+ * @param data_packet data packet to be sent
+ */
+uint16_t durationCalculation(CCPACKET data_packet){
+  return radio.transmittionTime(data_packet) + (2 * radio.transmittionTime(answer_packet)) + 3 * SIFS;
+}
 
 /**
  * probably not a good idea to use either receive/answer variable packets due to misuse could cause

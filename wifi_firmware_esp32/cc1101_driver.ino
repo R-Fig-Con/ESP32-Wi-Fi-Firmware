@@ -813,3 +813,31 @@ int CC1101::raw2lqi(char raw) {
   
     return 0x3F - raw;
 }
+
+/**
+   * Calculates the estimated time needed to transmit a packet
+   * 
+   * @param packet the packet being sent
+   */
+  unsigned short CC1101::transmittionTime(CCPACKET packet){
+
+    /**
+     * seems enough for the options currrent driver provides
+     * 
+     * is in seconds
+     */
+    int transmittion_rate = (workMode == MODE_LOW_SPEED) ? 4800 : 38400;
+
+    //packet consists of preamble bits, sync word, data length field, length of data, crc field
+    //can technically have length field too, although since rafio expects field to be on specific place this implementation may not even allow it
+    //preamble 4 bytes, seen from CC1101_DEFVAL_MDMCFG1 define
+    //sync word 4 bytes, seen from CC1101_DEFVAL_MDMCFG2 define
+    //data length field 2 bytes, defined in software
+    //data length is variable
+    //crc field is 2 bytes
+
+    unsigned int byte_count = 12 + packet.length;
+
+    return (byte_count * 1000000) / transmittion_rate; //should round up i think
+
+  }
