@@ -81,7 +81,6 @@ ieeeFrame * answerFrame = (ieeeFrame *) answer_packet.data;
  */
 void receiveAndAnswerTask(void* unused_param){
 
-  //Serial.println("\n\nRepetition\n\n");//Having this seems to cause "Initiating traffic..." to be done twice TODO see
   while(true){
 
     vTaskSuspend(receiveHandle);  //suspend self; done on activation and after each receive
@@ -92,7 +91,9 @@ void receiveAndAnswerTask(void* unused_param){
     }
 
     //Serial.println("Received frame on response task");
-
+    /**
+     * needs to check address, do not forget
+    */
     if(PACKET_IS_DATA(receiveFrame)){
       detachInterrupt(CC1101_GDO0);
 
@@ -162,7 +163,7 @@ bool checkChannel(){
  * @param data_packet data packet to be sent
  */
 uint16_t durationCalculation(CCPACKET data_packet){
-  return radio.transmittionTime(data_packet) + (2 * radio.transmittionTime(answer_packet)) + 3 * SIFS;
+  return radio.transmittionTime(data_packet) + (2 * radio.transmittionTime(answer_packet)) + 3 * SIFS; // 3 SIFS, ack and cts
 }
 
 /**
@@ -205,17 +206,17 @@ void setup() {
 
 
     //answer packet definition
-    answer_packet.length = 0;
+    answer_packet.length = sizeof(ieeeFrame);
 
     //rts packet definition
-    rts_packet.length = 20;
-    memcpy(receiveFrame->payload, "CONTENT", 7);
+    uint16_t data_length = sizeof(ieeeFrame) + 1000;
+    rts_packet.length = data_length; //has data_length to calculate duration
+    uint16_t rts_duration = durationCalculation(rts_packet);
+    rts_packet.length = sizeof(ieeeFrame); //right length for rts
     PACKET_TO_RTS(rtsFrame);
-    Serial.print(F("Frame control of rts: "));
-    Serial.println(rtsFrame->frame_control[0]);
     
     uint8_t dstMacAddress[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-    trf_gen = new TRAFFIC_GEN(&sender, myMacAddress, dstMacAddress);
+    trf_gen = new TRAFFIC_GEN(&sender, myMacAddress, dstMacAddress, rts_duration, data_length);
     trf_gen->setTime(TRF_GEN_GAUSS, 6000);
     
     

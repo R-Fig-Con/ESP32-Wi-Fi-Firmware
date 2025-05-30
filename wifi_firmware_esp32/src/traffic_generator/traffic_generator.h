@@ -102,13 +102,17 @@ class TRAFFIC_GEN
      *
      * Sets up the module and all it's fields. Should set a deault value for message.
      *
-     * 'sendDataF' is the function that will be used to send the packet.
+     * @param 'sendDataF' is the function that will be used to send the packet.
      *
-     * 'my_addr' is the mac address of the sender.
+     * @param 'my_addr' is the mac address of the sender.
      *
-     * 'destination_addr' will be the address of the receiver.
+     * @param 'destination_addr' will be the address of the receiver.
+     * 
+     * @param 'duration' calculated value for ieeeFrame.duration
+     * 
+     * @param 'data_length' length of data. Should contain size for ieeeFrame fields
      */
-    TRAFFIC_GEN(void (* sendDataF)(CCPACKET), uint8_t my_addr[6], uint8_t destination_addr[6]);
+    TRAFFIC_GEN(void (* sendDataF)(CCPACKET), uint8_t my_addr[6], uint8_t destination_addr[6], uint16_t duration, uint16_t data_length);
 
     /**
      * init
