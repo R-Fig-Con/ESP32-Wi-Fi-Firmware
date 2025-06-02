@@ -654,7 +654,7 @@ bool CC1101::cca(void)
   
   while(1) {
 
-    byte marcState = radio.readStatusReg(CC1101_MARCSTATE);
+    byte marcState = readStatusReg(CC1101_MARCSTATE);
 
     if (marcState == 17) {
 
@@ -664,14 +664,14 @@ bool CC1101::cca(void)
       // the RX state so that valid RSSI measurements 
       // are available again.
       
-      radio.setIdleState();       // Enter IDLE state
-      radio.flushRxFifo();        // Flush Rx FIFO
-      radio.setRxState();         // Back to RX state
+      setIdleState();       // Enter IDLE state
+      flushRxFifo();        // Flush Rx FIFO
+      setRxState();         // Back to RX state
 
       continue ;
     }
 
-    return raw2rssi(radio.readStatusReg(CC1101_RSSI)) < cca_threshold;
+    return raw2rssi(readStatusReg(CC1101_RSSI)) < cca_threshold;
   }
   
 }
@@ -687,7 +687,7 @@ void CC1101::setRxState(void)
   cmdStrobe(CC1101_SRX);
 
   //wait for state transition from idle to rx from receive
-  while(radio.readStatusReg(CC1101_MARCSTATE) != RFSTATE_RX);
+  while(readStatusReg(CC1101_MARCSTATE) != RFSTATE_RX);
 }
 
 /**
@@ -737,7 +737,7 @@ void CC1101::jamming(void)
   // Enable monitoring the TX FIFO through GDO2
   setMonitorTxFifo();
 
-  Serial.printf("macrstate = %d\r\n",  radio.readStatusReg(CC1101_MARCSTATE));
+  Serial.printf("macrstate = %d\r\n",  readStatusReg(CC1101_MARCSTATE));
 
   // Put the radio into the TX state
   setTxState();
@@ -749,7 +749,7 @@ void CC1101::jamming(void)
   // of the packet payload.
   while (1) {
 
-    if (count++ % 1000 == 0) Serial.printf("macrstate = %d\r\n",  radio.readStatusReg(CC1101_MARCSTATE));
+    if (count++ % 1000 == 0) Serial.printf("macrstate = %d\r\n",  readStatusReg(CC1101_MARCSTATE));
     
     // Wait until there is data available on the FIFO
     while (getGDO2state()) {
@@ -838,6 +838,6 @@ int CC1101::raw2lqi(char raw) {
 
     unsigned int byte_count = 12 + packet.length;
 
-    return (byte_count * 1000000) / transmittion_rate; //should round up i think
+    return (8 * byte_count * 1000000) / transmittion_rate; //should round up i think
 
   }
