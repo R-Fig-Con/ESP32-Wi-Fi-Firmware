@@ -5,7 +5,6 @@
 #include "src/cc1101_driver/ccpacket.h"
 #include "src/traffic_generator/traffic_generator.h"
 #include "src/csma_control/csma_control.h"
-//#include "src/csma_control/contention_backoff.h"
 
 
 /**
@@ -98,7 +97,7 @@ void receiveAndAnswerTask(void* unused_param){
       detachInterrupt(CC1101_GDO0);
 
       PACKET_TO_ACK(answerFrame);
-      answerFrame->duration = receiveFrame->duration - SIFS - radio.transmittionTime(packet_to_receive); //receive time could be saved
+      answerFrame->duration = receiveFrame->duration - SIFS - radio.transmittionTime(packet_to_receive);
       //Warning; This really counts on the packet sent not being interrupted, and therefore causing its failure
       //Creating prints in this step to check if the packet was sent or not should not cause any grand issues during testing;
       if(!radio.sendData(answer_packet)){
@@ -114,7 +113,7 @@ void receiveAndAnswerTask(void* unused_param){
       detachInterrupt(CC1101_GDO0);
 
       PACKET_TO_CTS(answerFrame);
-      answerFrame->duration = receiveFrame->duration - SIFS - radio.transmittionTime(packet_to_receive); //receive time could be saved
+      answerFrame->duration = receiveFrame->duration - SIFS - radio.transmittionTime(packet_to_receive); //receive time could be saved, rts should always have same size and therefore time
       //Warning; This really counts on the packet sent not being interrupted, and therefore causing its failure
       //Creating prints in this step to check if the packet was sent or not should not cause any grand issues during testing;
       if(!radio.sendData(answer_packet)){
@@ -201,6 +200,16 @@ void setup() {
     Serial.println(radio.readReg(CC1101_MARCSTATE, CC1101_STATUS_REGISTER) & 0x1f);
 
     Serial.println(F("CC1101 radio initialized."));
+
+
+    Serial.printf("src: %02X:%02X:%02X:%02X:%02X:%02X\n", 
+      myMacAddress[0], 
+      myMacAddress[1], 
+      myMacAddress[2], 
+      myMacAddress[3], 
+      myMacAddress[4], 
+      myMacAddress[5]);
+
 
     csma_control = new CSMA_CONTROL(&checkChannel, new MILD_BACKOFF());
 
