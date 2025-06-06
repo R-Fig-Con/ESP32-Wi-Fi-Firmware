@@ -2,6 +2,9 @@
  * Module to generate packet traffic
  */
 
+//Global constant
+#define MAC_ADDRESS_SIZE (uint8_t)6
+
 //Time interval modes
 #define TRF_GEN_CONST  (uint8_t)0 //Sets waiting time between packets to be constant
 #define TRF_GEN_GAUSS  (uint8_t)1 //Sets waiting time between packets to be decided according a gaussian distribution
@@ -33,13 +36,14 @@ struct ieeeFrame {
 
     uint8_t   frame_control[2] = {0};
 
+    // in microseconds
     uint16_t   duration;
 
     // Destination address
-    uint8_t   addr_dest[6];
+    uint8_t   addr_dest[MAC_ADDRESS_SIZE];
 
     // Source address
-    uint8_t   addr_src[6];
+    uint8_t   addr_src[MAC_ADDRESS_SIZE];
 
     // BSSID
     uint8_t   bssid[6];
@@ -48,7 +52,7 @@ struct ieeeFrame {
     uint8_t   seq_ctr[6];
 
     // Address 4 - N/A
-    const uint8_t   addr_extr[6] = {0};
+    const uint8_t   addr_extr[MAC_ADDRESS_SIZE] = {0};
 
     // Network data
     uint8_t   payload[0];
@@ -112,7 +116,7 @@ class TRAFFIC_GEN
      * 
      * @param 'data_length' length of data. Should contain size for ieeeFrame fields
      */
-    TRAFFIC_GEN(void (* sendDataF)(CCPACKET), uint8_t my_addr[6], uint8_t destination_addr[6], uint16_t duration, uint16_t data_length);
+    TRAFFIC_GEN(void (* sendDataF)(CCPACKET), uint8_t my_addr[MAC_ADDRESS_SIZE], uint8_t destination_addr[MAC_ADDRESS_SIZE], uint16_t duration, uint16_t data_length);
 
     /**
      * init

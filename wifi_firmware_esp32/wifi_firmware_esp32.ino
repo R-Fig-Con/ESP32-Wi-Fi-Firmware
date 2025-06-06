@@ -43,7 +43,7 @@ CC1101 radio;
 byte syncWord[2] = {199, 10};
 volatile bool packetWaiting;
 
-uint8_t myMacAddress[6];
+uint8_t myMacAddress[MAC_ADDRESS_SIZE];
 
 // Packet and frame used by the sender.
 TRAFFIC_GEN * trf_gen;
@@ -89,10 +89,26 @@ void receiveAndAnswerTask(void* unused_param){
       continue;
     }
 
+    bool destIsMe = true;
+    for( int i = 0; i<MAC_ADDRESS_SIZE; i++ ){
+      if( receiveFrame->addr_dest[i] != myMacAddress[i] ){
+        destIsMe = false;
+        break;
+      }
+    }
+
+    if( !destIsMe ){
+      detachInterrupt(CC1101_GDO0);
+      delayMicroseconds(receiveFrame->duration);
+      attachInterrupt(CC1101_GDO0, messageReceived, RISING);
+      continue;
+    }
+
+    //Set destination address
+    memcpy( answerFrame->addr_dest, receiveFrame->addr_src, MAC_ADDRESS_SIZE );
+
     //Serial.println("Received frame on response task");
-    /**
-     * needs to check address, do not forget
-    */
+    
     if(PACKET_IS_DATA(receiveFrame)){
       detachInterrupt(CC1101_GDO0);
 
@@ -202,13 +218,14 @@ void setup() {
     Serial.println(F("CC1101 radio initialized."));
 
 
-    Serial.printf("src: %02X:%02X:%02X:%02X:%02X:%02X\n", 
+    /*Serial.printf("src: %02X:%02X:%02X:%02X:%02X:%02X\n", 
       myMacAddress[0], 
       myMacAddress[1], 
       myMacAddress[2], 
       myMacAddress[3], 
       myMacAddress[4], 
       myMacAddress[5]);
+      */
 
 
     csma_control = new CSMA_CONTROL(&checkChannel, new MILD_BACKOFF());
@@ -216,12 +233,14 @@ void setup() {
 
     //answer packet definition
     answer_packet.length = sizeof(ieeeFrame);
+    memcpy(answerFrame->addr_src, myMacAddress, MAC_ADDRESS_SIZE);
 
     //rts packet definition
     uint16_t data_length = sizeof(ieeeFrame) + 1000;
     rts_packet.length = data_length; //has data_length to calculate duration
     uint16_t rts_duration = durationCalculation(rts_packet);
     rts_packet.length = sizeof(ieeeFrame); //right length for rts
+    memcpy(rtsFrame->addr_src, myMacAddress, MAC_ADDRESS_SIZE);
     PACKET_TO_RTS(rtsFrame);
     
     uint8_t dstMacAddress[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
