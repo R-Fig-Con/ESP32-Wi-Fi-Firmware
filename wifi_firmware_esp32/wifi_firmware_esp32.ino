@@ -1,10 +1,11 @@
 #include <Arduino.h>
-#include <WiFi.h>
-#include <esp_wifi.h>
+#include "esp_system.h"
+#include "esp_wifi.h"
 #include "src/cc1101_driver/cc1101_driver.h"
 #include "src/cc1101_driver/ccpacket.h"
 #include "src/traffic_generator/traffic_generator.h"
 #include "src/csma_control/csma_control.h"
+#include "src/wifi_config/wifi_config.h"
 
 
 /**
@@ -191,12 +192,38 @@ ieeeFrame * rtsFrame = (ieeeFrame *) rts_packet.data;
 void setup() {
 
     // Serial communication for debug
-    Serial.begin(115200);
+    Serial.begin(57600);
 
     // Wifi, for getting the MAC address.
-    WiFi.mode(WIFI_STA);
-    WiFi.STA.begin();
-    esp_wifi_get_mac(WIFI_IF_STA, myMacAddress);
+    //WiFi.mode(WIFI_STA); -- Each ndde will be it's own Access Point, so better to use AP
+    WiFi.mode(WIFI_AP);
+    //WiFi.STA.begin(); -- No need to start WiFi to get MAC
+    //esp_wifi_get_mac(WIFI_IF_STA, myMacAddress);
+    esp_wifi_get_mac(WIFI_IF_AP, myMacAddress);
+
+    delay(1000);
+
+    Serial.printf("My MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", 
+      myMacAddress[0], 
+      myMacAddress[1], 
+      myMacAddress[2], 
+      myMacAddress[3], 
+      myMacAddress[4], 
+      myMacAddress[5]);
+
+    //Will crash and core dump on Core 0:
+    wifi_com_start(myMacAddress);
+    /*xTaskCreatePinnedToCore(
+      &wifi_com_task,
+      "Communicate with the app",
+      1000,
+      &myMacAddress,
+      0,
+      NULL,
+      0 //putting wifi config on it's own core
+    );*/
+
+    delay(2000);
 
     // Initialize the CC1101 radio
     radio.init();
@@ -218,15 +245,6 @@ void setup() {
     Serial.println(F("CC1101 radio initialized."));
 
 
-    /*Serial.printf("src: %02X:%02X:%02X:%02X:%02X:%02X\n", 
-      myMacAddress[0], 
-      myMacAddress[1], 
-      myMacAddress[2], 
-      myMacAddress[3], 
-      myMacAddress[4], 
-      myMacAddress[5]);
-      */
-
 
     csma_control = new CSMA_CONTROL(&checkChannel, new MILD_BACKOFF());
 
@@ -243,7 +261,10 @@ void setup() {
     memcpy(rtsFrame->addr_src, myMacAddress, MAC_ADDRESS_SIZE);
     PACKET_TO_RTS(rtsFrame);
     
-    uint8_t dstMacAddress[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+    //4C:11:AE:64:D1:8C
+    uint8_t dstMacAddress[6] = {0x4C, 0x11, 0xAE, 0x64, 0xD1, 0x8C};
+    memcpy(rtsFrame->addr_dest, dstMacAddress, MAC_ADDRESS_SIZE);
+
     trf_gen = new TRAFFIC_GEN(&sender, myMacAddress, dstMacAddress, rts_duration, data_length);
     trf_gen->setTime(TRF_GEN_GAUSS, 6000);
     
@@ -284,6 +305,8 @@ void loop(){
           1          // Core 1
         );
     }
+
+    //Handle wifi config here? Move xTask to setup. IS this already core 0 by default?
 }
 
 /**
@@ -298,10 +321,7 @@ void sender(CCPACKET packet_to_send) {
 
   unsigned long start_time; //used for both rts and data wait
 
-  //saves value of sendData on rts and data send
-  //To eliminate at some point when its certain code does not interrupt send
-  bool b; 
-
+  //Label
   send:
 
   //should be able to answer while waiting for turn, so it cannot be deactivated
@@ -318,17 +338,16 @@ void sender(CCPACKET packet_to_send) {
   //Serial.println(radio.readStatusReg(CC1101_MARCSTATE));
   ///*
   detachInterrupt(CC1101_GDO0);
-  b = radio.sendData(rts_packet);
+
+  Serial.printf("Dst MAC for RTS: %02X:%02X:%02X:%02X:%02X:%02X\n", 
+      rtsFrame->addr_dest[0], 
+      rtsFrame->addr_dest[1], 
+      rtsFrame->addr_dest[2], 
+      rtsFrame->addr_dest[3], 
+      rtsFrame->addr_dest[4], 
+      rtsFrame->addr_dest[5]);
+  radio.sendData(rts_packet);
   attachInterrupt(CC1101_GDO0, messageReceived, RISING);
-
-  //Serial.print(F("Frame control of sent: "));
-  //Serial.println(rtsFrame->frame_control[0]);
-
-  //if(!b){//in protocol should not expect failure here
-    //Serial.println(F("Send rts failed."));
-    //retryCount += 1;
-    //goto send;
-  //}
 
   automaticResponse = false;
 
@@ -358,15 +377,8 @@ void sender(CCPACKET packet_to_send) {
   //*/
 
   detachInterrupt(CC1101_GDO0);
-  b = radio.sendData(packet_to_send);
+  radio.sendData(packet_to_send);
   attachInterrupt(CC1101_GDO0, messageReceived, RISING);
-
-
-  //if(!b){//in protocol should not expect failure here
-    //Serial.println(F("Send failed."));
-    //retryCount += 1;
-    //goto send;
-  //}
 
   automaticResponse = false;
   start_time = micros();

@@ -14,7 +14,7 @@ class CONTENTION_BACKOFF{
          /**
           * max value contention window allows
           */
-         uint8_t maximum;
+         uint16_t maximum;
          
     public:
 
