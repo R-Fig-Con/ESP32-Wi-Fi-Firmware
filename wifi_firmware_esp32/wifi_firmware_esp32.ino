@@ -212,16 +212,16 @@ void setup() {
       myMacAddress[5]);
 
     //Will crash and core dump on Core 0:
-    wifi_com_start(myMacAddress);
-    /*xTaskCreatePinnedToCore(
+    //wifi_com_start(myMacAddress);
+    xTaskCreatePinnedToCore(
       &wifi_com_task,
       "Communicate with the app",
-      1000,
+      10000,
       &myMacAddress,
       0,
       NULL,
       0 //putting wifi config on it's own core
-    );*/
+    );
 
     delay(2000);
 
@@ -261,8 +261,8 @@ void setup() {
     memcpy(rtsFrame->addr_src, myMacAddress, MAC_ADDRESS_SIZE);
     PACKET_TO_RTS(rtsFrame);
     
-    //4C:11:AE:64:D1:8C
-    uint8_t dstMacAddress[6] = {0x4C, 0x11, 0xAE, 0x64, 0xD1, 0x8C};
+    //4C:11:AE:64:D1:8D
+    uint8_t dstMacAddress[6] = {0x4C, 0x11, 0xAE, 0x64, 0xD1, 0x8D};
     memcpy(rtsFrame->addr_dest, dstMacAddress, MAC_ADDRESS_SIZE);
 
     trf_gen = new TRAFFIC_GEN(&sender, myMacAddress, dstMacAddress, rts_duration, data_length);

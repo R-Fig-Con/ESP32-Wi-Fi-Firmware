@@ -25,7 +25,7 @@ bool wifi_com_start(uint8_t my_mac[MAC_ADDRESS_SIZE]){
     sprintf(ssid + 6, "%02X%02X%02X%02X%02X%02X", 
         my_mac[0], my_mac[1], my_mac[2], my_mac[3], my_mac[4], my_mac[5]);
 
-    const char* password = "YourPassword";
+    const char* password = WIFI_PASSWORD;
 
     Serial.printf("SSID: %s\n", ssid);
 
@@ -45,8 +45,7 @@ bool wifi_com_start(uint8_t my_mac[MAC_ADDRESS_SIZE]){
 
     server.begin();
 
-    Serial.println("WiFi AP is now enabled.");
-    Serial.printf("Listening on IP: %s Port: %d\n", WiFi.softAPIP().toString(), PORT);
+    Serial.printf("Listening on %s:%d\n", WiFi.softAPIP().toString(), PORT);
 
     return true;
 }
