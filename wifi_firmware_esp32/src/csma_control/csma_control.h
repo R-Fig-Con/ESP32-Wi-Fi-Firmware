@@ -81,6 +81,8 @@ class CSMA_CONTROL
         * 'isChannelFree' function to check if medium is free
         */
        CSMA_CONTROL(bool (*isChannelFree)(), CONTENTION_BACKOFF* contentionBackoff);
+       
+       ~CSMA_CONTROL();
 
        /**
         * Waits for its turn to access the channel

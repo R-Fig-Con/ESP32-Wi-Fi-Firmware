@@ -7,6 +7,30 @@
 #include "src/csma_control/csma_control.h"
 #include "src/wifi_config/wifi_config.h"
 
+/**
+ * to uncomment if strategy of changing cpu cores works and is to be used
+*/
+//#define CACHE_CHANGE_IN_USE  "Irrelevant value"
+
+/**
+ * to uncomment if answer task logic changes with mac protocol parameter change
+*/
+//#define ANSWER_TASK_CHANGES_WITH_PARAMETERS "Irrelevant value"
+
+//cache change currently not working
+
+// From https://www.espressif.com/sites/default/files/documentation/esp32_technical_reference_manual_en.pdf#sysmem
+// Allows to switch cache of each processor, used to ensure radio mac protocol contains new and updated cache values
+//check section 3.3.4 for mutex explanation and 12.4 for register address
+#define DPORT_CACHE_MUX_MODE_REG_ADDR 0x3FF0007C
+#define DPORT_CACHE_MUX_MODE_REG_DEF_VAL 0
+#define DPORT_CACHE_MUX_MODE_REG_SWITCH_VAL 3
+
+/**
+ * dont know if it needs to be volatile, is just in case
+*/
+volatile uint32_t* cacheRegisterMutex = (volatile uint32_t*) DPORT_CACHE_MUX_MODE_REG_ADDR;
+
 
 /**
  * multiple increase, linear decrease
@@ -37,6 +61,33 @@ class MILD_BACKOFF: public CONTENTION_BACKOFF{
       this->maximum = 1023;
      }
 
+};
+
+
+class LINEAR_BACKOFF: public CONTENTION_BACKOFF{
+  void reduceContentionWindow(){
+    uint8_t newWindow = this->contentionWindow - 1;
+
+    if (newWindow >= this->minimum){
+      this->contentionWindow = newWindow;
+    }
+  }
+
+  
+  void increaseContentionWindow(){
+    uint8_t newWindow = this->contentionWindow + 1;
+
+    if (newWindow <= this->maximum){
+      this->contentionWindow = newWindow;
+    }
+  }
+
+  public:
+     LINEAR_BACKOFF(){
+      this->minimum = 15;
+      this->contentionWindow = 15;
+      this->maximum = 1023;
+     }
 };
 
 CC1101 radio;
@@ -189,6 +240,69 @@ uint16_t durationCalculation(CCPACKET data_packet){
 CCPACKET rts_packet;
 ieeeFrame * rtsFrame = (ieeeFrame *) rts_packet.data;
 
+/**
+ * semaphore used either to gain access to radio mac protocol
+ * wether to read or write
+*/
+SemaphoreHandle_t xSemaphore = xSemaphoreCreateBinary();
+
+/**
+  Test task. Should instead receive info, probably through a queue
+
+  Uses mutex, as doing something like substituting CSMA_CONTROL when in CSMA_CONTROL
+  function would probably cause big issues
+*/
+void coreZeroInitiator(void* unused_param){
+
+  bool flip_flop = true; // to decide change each time, test purposes
+
+  while(true){
+    Serial.println(F("\nSecond core awake"));
+
+    //taskENTER_CRITICAL(&communicationMux);
+    xSemaphoreTake(xSemaphore, portMAX_DELAY);
+    Serial.println("\n\nGOT EXCLUSIVITY\n\n");
+
+#ifdef CACHE_CHANGE_IN_USE
+    *cacheRegisterMutex = DPORT_CACHE_MUX_MODE_REG_SWITCH_VAL;
+#endif
+
+#ifdef ANSWER_TASK_CHANGES_WITH_PARAMETERS
+    radio.setIdleState(); // to avoid rx overflow
+    Serial.println("Set to idle state");
+#endif
+
+    delete csma_control;
+
+    Serial.println("DELETED");
+
+    flip_flop = !flip_flop;
+
+    csma_control = (flip_flop) ? new CSMA_CONTROL(&checkChannel, new MILD_BACKOFF()) : new CSMA_CONTROL(&checkChannel, new LINEAR_BACKOFF());
+
+    Serial.println("new csma_control");
+
+#ifdef ANSWER_TASK_CHANGES_WITH_PARAMETERS
+    radio.setRxState();
+    Serial.println("ON RX STATE");
+#endif
+    
+#ifdef CACHE_CHANGE_IN_USE
+    *cacheRegisterMutex = DPORT_CACHE_MUX_MODE_REG_DEF_VAL;
+#endif
+    //taskEXIT_CRITICAL(&communicationMux);
+    xSemaphoreGive(xSemaphore);
+
+    Serial.println(F("CHANGED, add sleep or delay\n"));
+
+    delay(2000);
+    
+  }
+
+}
+
+
+
 void setup() {
 
     // Serial communication for debug
@@ -196,7 +310,7 @@ void setup() {
 
     // Wifi, for getting the MAC address.
     //WiFi.mode(WIFI_STA); -- Each ndde will be it's own Access Point, so better to use AP
-    WiFi.mode(WIFI_AP);
+    //  WiFi.mode(WIFI_AP);
     //WiFi.STA.begin(); -- No need to start WiFi to get MAC
     //esp_wifi_get_mac(WIFI_IF_STA, myMacAddress);
     esp_wifi_get_mac(WIFI_IF_AP, myMacAddress);
@@ -210,20 +324,6 @@ void setup() {
       myMacAddress[3], 
       myMacAddress[4], 
       myMacAddress[5]);
-
-    //Will crash and core dump on Core 0:
-    //wifi_com_start(myMacAddress);
-    xTaskCreatePinnedToCore(
-      &wifi_com_task,
-      "Communicate with the app",
-      10000,
-      &myMacAddress,
-      0,
-      NULL,
-      0 //putting wifi config on it's own core
-    );
-
-    delay(2000);
 
     // Initialize the CC1101 radio
     radio.init();
@@ -244,7 +344,27 @@ void setup() {
 
     Serial.println(F("CC1101 radio initialized."));
 
+    //Will crash and core dump on Core 0:
+    //wifi_com_start(myMacAddress);
 
+    //needs to be given once at first?
+    //there shoud be a way to initialize xSemaphore withou this issue, TODO
+    xSemaphoreGive(xSemaphore);
+    
+    
+    xTaskCreatePinnedToCore(
+      &coreZeroInitiator,
+      "Communicate with the app",
+      10000,
+      &myMacAddress,
+      0,
+      NULL,
+      0 //putting wifi config on it's own core
+    );
+    
+    
+
+    delay(2000);
 
     csma_control = new CSMA_CONTROL(&checkChannel, new MILD_BACKOFF());
 
@@ -321,6 +441,8 @@ void sender(CCPACKET packet_to_send) {
 
   unsigned long start_time; //used for both rts and data wait
 
+  //taskENTER_CRITICAL(&communicationMux);
+  xSemaphoreTake(xSemaphore, portMAX_DELAY);
   //Label
   send:
 
@@ -328,6 +450,8 @@ void sender(CCPACKET packet_to_send) {
 
   if(retryCount == 10){
     Serial.println(F("GIVING UP after retry limit reached"));
+    //taskEXIT_CRITICAL(&communicationMux);
+    xSemaphoreGive(xSemaphore);
     return;
   }
   //Serial.println(radio.readStatusReg(CC1101_MARCSTATE));
@@ -409,6 +533,9 @@ void sender(CCPACKET packet_to_send) {
   
   csma_control->ackReceived(true);
   //to eventually add sucess to register, so it can be accessed by the esp wifi
+
+  //taskEXIT_CRITICAL(&communicationMux);
+  xSemaphoreGive(xSemaphore);
 
   Serial.println(F("Complete success"));
 }
