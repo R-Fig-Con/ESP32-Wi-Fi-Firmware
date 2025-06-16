@@ -8,28 +8,9 @@
 #include "src/wifi_config/wifi_config.h"
 
 /**
- * to uncomment if strategy of changing cpu cores works and is to be used
-*/
-//#define CACHE_CHANGE_IN_USE  "Irrelevant value"
-
-/**
  * to uncomment if answer task logic changes with mac protocol parameter change
 */
 //#define ANSWER_TASK_CHANGES_WITH_PARAMETERS "Irrelevant value"
-
-//cache change currently not working
-
-// From https://www.espressif.com/sites/default/files/documentation/esp32_technical_reference_manual_en.pdf#sysmem
-// Allows to switch cache of each processor, used to ensure radio mac protocol contains new and updated cache values
-//check section 3.3.4 for mutex explanation and 12.4 for register address
-#define DPORT_CACHE_MUX_MODE_REG_ADDR 0x3FF0007C
-#define DPORT_CACHE_MUX_MODE_REG_DEF_VAL 0
-#define DPORT_CACHE_MUX_MODE_REG_SWITCH_VAL 3
-
-/**
- * dont know if it needs to be volatile, is just in case
-*/
-volatile uint32_t* cacheRegisterMutex = (volatile uint32_t*) DPORT_CACHE_MUX_MODE_REG_ADDR;
 
 
 /**
@@ -240,11 +221,68 @@ uint16_t durationCalculation(CCPACKET data_packet){
 CCPACKET rts_packet;
 ieeeFrame * rtsFrame = (ieeeFrame *) rts_packet.data;
 
+
+
+
 /**
- * semaphore used either to gain access to radio mac protocol
- * wether to read or write
+ * list of backoff protocols from which to choose
 */
-SemaphoreHandle_t xSemaphore = xSemaphoreCreateBinary();
+enum BACKOFF_PROTOCOLS{
+  MILD,
+  LINEAR
+};
+
+/**
+ * parameter collection for trafficGenerator
+*/
+struct trafficGeneratorParameters{
+  /**
+   * flag to communicate if values ware actually given
+  */
+  bool used;
+
+  uint8_t time_mode;
+
+  uint16_t waiting_time;
+};
+
+
+struct csmaControlParameters{
+  /**
+   * flag to communicate if values ware actually given
+  */
+  bool used;
+
+
+  /*
+   * wether backof is of MILD, Exponentional, or other.
+   *
+  */
+  BACKOFF_PROTOCOLS backoff_protocol;
+};
+
+/**
+ * Contains all possible data used to reconfigure mac protocol
+*/
+struct macProtocolParameters{
+  trafficGeneratorParameters traf_gen_params;
+
+  csmaControlParameters csma_contrl_params;
+};
+
+/**
+ * parameter queue
+ *
+ * size of queue as one, should not need to hold more than one value at once
+*/
+QueueHandle_t protocolParametersQueueHandle = xQueueCreate( 1, sizeof(macProtocolParameters) );
+
+
+
+
+
+
+
 
 /**
   Test task. Should instead receive info, probably through a queue
@@ -256,44 +294,25 @@ void coreZeroInitiator(void* unused_param){
 
   bool flip_flop = true; // to decide change each time, test purposes
 
+  uint8_t params_buffer[sizeof(macProtocolParameters)];
+
+  macProtocolParameters *params = (macProtocolParameters*) params_buffer;
+  params->csma_contrl_params.used = true;
+
   while(true){
     Serial.println(F("\nSecond core awake"));
 
-    //taskENTER_CRITICAL(&communicationMux);
-    xSemaphoreTake(xSemaphore, portMAX_DELAY);
-    Serial.println("\n\nGOT EXCLUSIVITY\n\n");
-
-#ifdef CACHE_CHANGE_IN_USE
-    *cacheRegisterMutex = DPORT_CACHE_MUX_MODE_REG_SWITCH_VAL;
-#endif
-
-#ifdef ANSWER_TASK_CHANGES_WITH_PARAMETERS
-    radio.setIdleState(); // to avoid rx overflow
-    Serial.println("Set to idle state");
-#endif
-
-    delete csma_control;
-
-    Serial.println("DELETED");
-
     flip_flop = !flip_flop;
 
-    csma_control = (flip_flop) ? new CSMA_CONTROL(&checkChannel, new MILD_BACKOFF()) : new CSMA_CONTROL(&checkChannel, new LINEAR_BACKOFF());
+    if(flip_flop){
+      params->csma_contrl_params.backoff_protocol = MILD;
+    } else{
+      params->csma_contrl_params.backoff_protocol = LINEAR;
+    }
 
-    Serial.println("new csma_control");
-
-#ifdef ANSWER_TASK_CHANGES_WITH_PARAMETERS
-    radio.setRxState();
-    Serial.println("ON RX STATE");
-#endif
+    xQueueSend(protocolParametersQueueHandle, (const void*) params_buffer, portMAX_DELAY);
     
-#ifdef CACHE_CHANGE_IN_USE
-    *cacheRegisterMutex = DPORT_CACHE_MUX_MODE_REG_DEF_VAL;
-#endif
-    //taskEXIT_CRITICAL(&communicationMux);
-    xSemaphoreGive(xSemaphore);
-
-    Serial.println(F("CHANGED, add sleep or delay\n"));
+    Serial.println(F("Given values, does not wait for other task to change values\n"));
 
     delay(2000);
     
@@ -302,6 +321,77 @@ void coreZeroInitiator(void* unused_param){
 }
 
 
+/**
+ * semaphore used either to gain access to radio mac protocol
+ * wether to read or write
+*/
+SemaphoreHandle_t xSemaphore = xSemaphoreCreateBinary();
+
+/**
+ * Task to change parameters of protocol, running on the same core to ensure cache is correct
+ * 
+ * Not responsible of collecting parameters, receives them
+ *
+ * TODO consider if parameter receive should happen either by  function params and task is recreated
+ * each time or it should receive them from a queue
+ *
+*/
+void changeParametersTask(void* unusedParam){
+
+  //Implementing queue solution for now
+
+  Serial.println(F("Created change parameters task"));
+
+  uint8_t params_buffer[sizeof(macProtocolParameters)];
+
+  macProtocolParameters *params = (macProtocolParameters*) params_buffer;
+
+  while(true){
+
+#ifdef ANSWER_TASK_CHANGES_WITH_PARAMETERS
+    radio.setIdleState(); // to avoid rx overflow
+    Serial.println("Set to idle state, avoiding answer task being activated");
+#endif
+
+    /**
+     * check if portMAX_DELAY wait is forever
+    */
+    xQueueReceive(protocolParametersQueueHandle, params_buffer, portMAX_DELAY);
+
+    xSemaphoreTake(xSemaphore, portMAX_DELAY);
+    Serial.println("\n\nCHANGE PARAMETERS GOT EXCLUSIVITY\n\n");
+
+    if(params->csma_contrl_params.used){
+      delete csma_control;
+      switch(params->csma_contrl_params.backoff_protocol){
+        case MILD:
+          csma_control = new CSMA_CONTROL(&checkChannel, new MILD_BACKOFF());
+          Serial.println("Changed csma_control to MILD_BACKOFF");
+          break;
+
+        case LINEAR:
+          csma_control = new CSMA_CONTROL(&checkChannel, new LINEAR_BACKOFF());
+          Serial.println("Changed csma_control to LINEAR_BACKOFF");
+          break;
+      }
+    }
+
+
+    if(params->traf_gen_params.used){
+      trf_gen->setTime(params->traf_gen_params.time_mode, params->traf_gen_params.waiting_time);
+    }
+
+#ifdef ANSWER_TASK_CHANGES_WITH_PARAMETERS
+    radio.setRxState();
+    Serial.println("On rx state, allowing answer task activating");
+#endif
+
+    xSemaphoreGive(xSemaphore);
+    Serial.println(F("CHANGED, delay\n"));
+
+  }
+
+}
 
 void setup() {
 
@@ -398,6 +488,16 @@ void setup() {
       &receiveHandle,
       1 //putting related to cc1101 on same core
     );
+
+    xTaskCreatePinnedToCore(
+      &changeParametersTask,
+      "change parameters task",
+      5000, //no thought used to decide size
+      NULL,
+      1, // smaller than traffic generation
+      &receiveHandle,
+      1 //putting related to cc1101 on same core
+    );
     
 
     attachInterrupt(CC1101_GDO0, messageReceived, RISING);
@@ -462,14 +562,6 @@ void sender(CCPACKET packet_to_send) {
   //Serial.println(radio.readStatusReg(CC1101_MARCSTATE));
   ///*
   detachInterrupt(CC1101_GDO0);
-
-  Serial.printf("Dst MAC for RTS: %02X:%02X:%02X:%02X:%02X:%02X\n", 
-      rtsFrame->addr_dest[0], 
-      rtsFrame->addr_dest[1], 
-      rtsFrame->addr_dest[2], 
-      rtsFrame->addr_dest[3], 
-      rtsFrame->addr_dest[4], 
-      rtsFrame->addr_dest[5]);
   radio.sendData(rts_packet);
   attachInterrupt(CC1101_GDO0, messageReceived, RISING);
 
