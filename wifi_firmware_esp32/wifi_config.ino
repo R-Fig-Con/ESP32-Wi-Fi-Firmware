@@ -1,16 +1,36 @@
+//#include <WiFiManager.h> // https://github.com/tzapu/WiFiManager
+
+WiFiServer server(PORT);
+//WiFiManager wm;
+
 void wifi_com_task(void* parameter) {
-    uint8_t* mac_addr = (uint8_t*)parameter;
+    uint8_t* mac_addr = (uint8_t*) parameter;
 
-    bool success = wifi_com_start(mac_addr);
-
-    if (success) {
+    if (wifi_com_start(mac_addr)) {
         Serial.println("WiFi COM started successfully.");
     } else {
         Serial.println("WiFi COM failed to start.");
     }
 
-    // Optional: delete the task if it's done
-    vTaskDelete(NULL);
+
+    while (true){
+        NetworkClient client = server.available();
+        if (client) {
+            Serial.println("Client connected");
+            while (client.connected()) {
+                if (client.available()) {
+                String data = client.readStringUntil('\n');
+                Serial.print("Received: ");
+                Serial.println(data);
+                client.print("Hello from ESP32!\n");
+                }
+            }
+        client.stop();
+        Serial.println("Client disconnected");
+        }
+        
+    }
+    
 }
 
 bool wifi_com_start(uint8_t my_mac[MAC_ADDRESS_SIZE]){
@@ -18,8 +38,6 @@ bool wifi_com_start(uint8_t my_mac[MAC_ADDRESS_SIZE]){
     IPAddress local_IP(10, 0, 0, 1);      // ESP32 AP IP
     IPAddress gateway(10, 0, 0, 1);       // Same as local IP
     IPAddress subnet(255, 255, 255, 0);   // Subnet mask
-
-    WiFiServer server(PORT);
 
     char ssid[6 + MAC_STR_LEN + 1] = "ESP32-"; //Base(6) + MAC(6) + null terminator
     sprintf(ssid + 6, "%02X%02X%02X%02X%02X%02X", 
@@ -42,6 +60,9 @@ bool wifi_com_start(uint8_t my_mac[MAC_ADDRESS_SIZE]){
         Serial.println("WiFi Start Failed!");
         return false;
     }
+
+    //wm.setConfigPortalBlocking(false);
+    //wm.setConfigPortalTimeout(60);
 
     server.begin();
 

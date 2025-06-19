@@ -12,6 +12,10 @@
 */
 //#define ANSWER_TASK_CHANGES_WITH_PARAMETERS "Irrelevant value"
 
+#define ANSWER_TASK_PRIORITY 10
+#define TRAFFIC_GENERATOR_PRIORITY 3
+#define PARAMETER_CHANGE_PRIORITY 2 // smaller than traffic generation
+#define LOOP_PRIORITY 1
 
 /**
  * multiple increase, linear decrease
@@ -110,6 +114,10 @@ ieeeFrame * answerFrame = (ieeeFrame *) answer_packet.data;
 
 /**
  * Task will handle any communication started by another party
+ * 
+ * Is able to answer either to rts or data packets
+ * 
+ * Implements NAV by doing an active wait where it deactivates packet receiving capabilities
  */
 void receiveAndAnswerTask(void* unused_param){
 
@@ -117,7 +125,6 @@ void receiveAndAnswerTask(void* unused_param){
 
     vTaskSuspend(receiveHandle);  //suspend self; done on activation and after each receive
 
-    //Serial.println("R&A awake");
     if(!receiver()){
       continue;
     }
@@ -131,9 +138,15 @@ void receiveAndAnswerTask(void* unused_param){
     }
 
     if( !destIsMe ){
-      detachInterrupt(CC1101_GDO0);
-      delayMicroseconds(receiveFrame->duration);
-      attachInterrupt(CC1101_GDO0, messageReceived, RISING);
+      uint16_t wait_time =  receiveFrame->duration;
+      unsigned long wait_start = micros();
+
+      radio.setIdleState();
+
+      while (micros() - wait_start <= wait_time);
+
+      radio.setRxState();
+      
       continue;
     }
 
@@ -325,7 +338,7 @@ void coreZeroInitiator(void* unused_param){
  * semaphore used either to gain access to radio mac protocol
  * wether to read or write
 */
-SemaphoreHandle_t xSemaphore = xSemaphoreCreateBinary();
+SemaphoreHandle_t xSemaphore = xSemaphoreCreateMutex();
 
 /**
  * Task to change parameters of protocol, running on the same core to ensure cache is correct
@@ -356,7 +369,9 @@ void changeParametersTask(void* unusedParam){
     /**
      * check if portMAX_DELAY wait is forever
     */
-    xQueueReceive(protocolParametersQueueHandle, params_buffer, portMAX_DELAY);
+    if(xQueueReceive(protocolParametersQueueHandle, params_buffer, portMAX_DELAY) == pdFALSE){
+      continue;
+    }
 
     xSemaphoreTake(xSemaphore, portMAX_DELAY);
     Serial.println("\n\nCHANGE PARAMETERS GOT EXCLUSIVITY\n\n");
@@ -399,8 +414,7 @@ void setup() {
     Serial.begin(57600);
 
     // Wifi, for getting the MAC address.
-    //WiFi.mode(WIFI_STA); -- Each ndde will be it's own Access Point, so better to use AP
-    //  WiFi.mode(WIFI_AP);
+    WiFi.mode(WIFI_AP);
     //WiFi.STA.begin(); -- No need to start WiFi to get MAC
     //esp_wifi_get_mac(WIFI_IF_STA, myMacAddress);
     esp_wifi_get_mac(WIFI_IF_AP, myMacAddress);
@@ -432,27 +446,18 @@ void setup() {
     Serial.print(F("CC1101_MARCSTATE "));
     Serial.println(radio.readReg(CC1101_MARCSTATE, CC1101_STATUS_REGISTER) & 0x1f);
 
-    Serial.println(F("CC1101 radio initialized."));
-
-    //Will crash and core dump on Core 0:
-    //wifi_com_start(myMacAddress);
-
-    //needs to be given once at first?
-    //there shoud be a way to initialize xSemaphore withou this issue, TODO
-    xSemaphoreGive(xSemaphore);
+    Serial.println(F("CC1101 radio initialized."));    
     
     
     xTaskCreatePinnedToCore(
-      &coreZeroInitiator,
-      "Communicate with the app",
-      10000,
+      &wifi_com_task,
+      "App Comm",
+      100000,
       &myMacAddress,
-      0,
+      0, //WARNING NEEDS TO BE 0, OTHERWISE WATCHDOG PROBLEMS
       NULL,
       0 //putting wifi config on it's own core
     );
-    
-    
 
     delay(2000);
 
@@ -484,7 +489,7 @@ void setup() {
       "receive and send acknowledge",
       10000, //no thought used to decide size
       NULL,
-      10, // believe it should be bigger than traffic generation
+      ANSWER_TASK_PRIORITY,
       &receiveHandle,
       1 //putting related to cc1101 on same core
     );
@@ -494,7 +499,7 @@ void setup() {
       "change parameters task",
       5000, //no thought used to decide size
       NULL,
-      1, // smaller than traffic generation
+      PARAMETER_CHANGE_PRIORITY, 
       &receiveHandle,
       1 //putting related to cc1101 on same core
     );
@@ -503,6 +508,7 @@ void setup() {
     attachInterrupt(CC1101_GDO0, messageReceived, RISING);
 
     radio.setRxState();
+    
 }
 
 TaskHandle_t generatorHandle = NULL;
@@ -512,6 +518,7 @@ void generatorTask(void* unusedParam){
 }
 
 void loop(){
+    
     if(!trf_gen->isRunning()){
         Serial.print(F("Initiating traffic..., loop has priority ")); 
         Serial.println(uxTaskPriorityGet(NULL));
@@ -520,13 +527,12 @@ void loop(){
           "traffic generator",   // Name of the task
           10000,      // Stack size
           NULL,      // Task parameters
-          2,         // Priority
+          TRAFFIC_GENERATOR_PRIORITY,         // Priority
           &generatorHandle,      // Task handle
           1          // Core 1
         );
     }
 
-    //Handle wifi config here? Move xTask to setup. IS this already core 0 by default?
 }
 
 /**
@@ -550,7 +556,6 @@ void sender(CCPACKET packet_to_send) {
 
   if(retryCount == 10){
     Serial.println(F("GIVING UP after retry limit reached"));
-    //taskEXIT_CRITICAL(&communicationMux);
     xSemaphoreGive(xSemaphore);
     return;
   }
@@ -624,9 +629,7 @@ void sender(CCPACKET packet_to_send) {
 
   
   csma_control->ackReceived(true);
-  //to eventually add sucess to register, so it can be accessed by the esp wifi
 
-  //taskEXIT_CRITICAL(&communicationMux);
   xSemaphoreGive(xSemaphore);
 
   Serial.println(F("Complete success"));
@@ -644,7 +647,7 @@ bool receiver() {
   // Try to receive the packet
   radio.receiveData(&packet_to_receive);
   
-  //only necessary if is not handled by task; probably shoul be placed somewhere else; TODO
+  //only necessary if is handled by traffic task; probably shoul be placed somewhere else; TODO
   packetWaiting = false;
   attachInterrupt(CC1101_GDO0, messageReceived, RISING);
 

@@ -4,8 +4,8 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 
-#define SERVER_IP "192.168.1.100"  // ESP32 IP address, corresponding to local static IP given to ESP 
-#define SERVER_PORT 1234        // Port used by ESP32
+#define SERVER_IP "10.0.0.1"  // ESP32 IP address, corresponding to local static IP given to ESP 
+#define SERVER_PORT 5000        // Port used by ESP32
 
 /**
  * Communicates with esp, assuming the port and IP being used on the defines
