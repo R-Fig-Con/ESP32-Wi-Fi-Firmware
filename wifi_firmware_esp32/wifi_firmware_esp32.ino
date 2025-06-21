@@ -10,10 +10,10 @@
 /**
  * to uncomment if answer task logic changes with mac protocol parameter change
 */
-//#define ANSWER_TASK_CHANGES_WITH_PARAMETERS "Irrelevant value"
+#define ANSWER_TASK_CHANGES_WITH_PARAMETERS "Irrelevant value"
 
 #define ANSWER_TASK_PRIORITY 10
-#define TRAFFIC_GENERATOR_PRIORITY 3
+#define TRAFFIC_GENERATOR_PRIORITY 5
 #define PARAMETER_CHANGE_PRIORITY 2 // smaller than traffic generation
 #define LOOP_PRIORITY 1
 
@@ -547,7 +547,6 @@ void sender(CCPACKET packet_to_send) {
 
   unsigned long start_time; //used for both rts and data wait
 
-  //taskENTER_CRITICAL(&communicationMux);
   xSemaphoreTake(xSemaphore, portMAX_DELAY);
   //Label
   send:
@@ -613,6 +612,8 @@ void sender(CCPACKET packet_to_send) {
       csma_control->ackReceived(false);
       goto send;
     }
+    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+    configGENERATE_RUN_TIME_STATS();
 
   }
 
