@@ -6,6 +6,7 @@
 #include "src/traffic_generator/traffic_generator.h"
 #include "src/csma_control/csma_control.h"
 #include "src/wifi_config/wifi_config.h"
+#include "src/param_data/param_data.h"
 
 /**
  * to uncomment if answer task logic changes with mac protocol parameter change
@@ -237,58 +238,6 @@ ieeeFrame * rtsFrame = (ieeeFrame *) rts_packet.data;
 
 
 
-/**
- * list of backoff protocols from which to choose
-*/
-enum BACKOFF_PROTOCOLS{
-  MILD,
-  LINEAR
-};
-
-/**
- * parameter collection for trafficGenerator
-*/
-struct trafficGeneratorParameters{
-  /**
-   * flag to communicate if values ware actually given
-  */
-  bool used;
-
-  uint8_t time_mode;
-
-  uint16_t waiting_time;
-};
-
-
-struct csmaControlParameters{
-  /**
-   * flag to communicate if values ware actually given
-  */
-  bool used;
-
-
-  /*
-   * wether backof is of MILD, Exponentional, or other.
-   *
-  */
-  BACKOFF_PROTOCOLS backoff_protocol;
-};
-
-/**
- * Contains all possible data used to reconfigure mac protocol
-*/
-struct macProtocolParameters{
-  trafficGeneratorParameters traf_gen_params;
-
-  csmaControlParameters csma_contrl_params;
-};
-
-/**
- * parameter queue
- *
- * size of queue as one, should not need to hold more than one value at once
-*/
-QueueHandle_t protocolParametersQueueHandle = xQueueCreate( 1, sizeof(macProtocolParameters) );
 
 
 
@@ -361,17 +310,17 @@ void changeParametersTask(void* unusedParam){
 
   while(true){
 
-#ifdef ANSWER_TASK_CHANGES_WITH_PARAMETERS
-    radio.setIdleState(); // to avoid rx overflow
-    Serial.println("Set to idle state, avoiding answer task being activated");
-#endif
-
     /**
      * check if portMAX_DELAY wait is forever
     */
     if(xQueueReceive(protocolParametersQueueHandle, params_buffer, portMAX_DELAY) == pdFALSE){
       continue;
     }
+
+#ifdef ANSWER_TASK_CHANGES_WITH_PARAMETERS
+    radio.setIdleState(); // to avoid rx overflow
+    Serial.println("Set to idle state, avoiding answer task being activated");
+#endif
 
     xSemaphoreTake(xSemaphore, portMAX_DELAY);
     Serial.println("\n\nCHANGE PARAMETERS GOT EXCLUSIVITY\n\n");
@@ -612,8 +561,6 @@ void sender(CCPACKET packet_to_send) {
       csma_control->ackReceived(false);
       goto send;
     }
-    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-    configGENERATE_RUN_TIME_STATS();
 
   }
 

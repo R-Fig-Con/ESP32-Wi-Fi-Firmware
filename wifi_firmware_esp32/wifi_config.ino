@@ -1,5 +1,7 @@
 //#include <WiFiManager.h> // https://github.com/tzapu/WiFiManager
 
+
+//QueueHandle_t protocolParametersQueueHandle = xQueueCreate( 1, sizeof(macProtocolParameters) );
 WiFiServer server(PORT);
 //WiFiManager wm;
 
@@ -12,6 +14,7 @@ void wifi_com_task(void* parameter) {
         Serial.println("WiFi COM failed to start.");
     }
 
+    macProtocolParameters params;
 
     while (true){
         NetworkClient client = server.available();
@@ -25,6 +28,10 @@ void wifi_com_task(void* parameter) {
                 client.print("Hello from ESP32!\n");
                 }
             }
+        //no data collection
+        params.csma_contrl_params.used = true;
+        params.csma_contrl_params.backoff_protocol = MILD;
+        xQueueSend(protocolParametersQueueHandle, (const void*) &params, portMAX_DELAY);
         client.stop();
         Serial.println("Client disconnected");
         }
