@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include "params.h"
 
 #define SERVER_IP "10.0.0.1"  // ESP32 IP address, corresponding to local static IP given to ESP 
 #define SERVER_PORT 5000        // Port used by ESP32
@@ -11,7 +12,11 @@
  * Communicates with esp, assuming the port and IP being used on the defines
  */
 
-int main() {
+int main(int argc, char **argv) {
+    
+    extract_args(argc, argv);
+
+
     int sock;
     struct sockaddr_in server_addr;
     char buffer[1024] = {0};
