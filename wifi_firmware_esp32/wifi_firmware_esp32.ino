@@ -16,7 +16,28 @@
 #define ANSWER_TASK_PRIORITY 10
 #define TRAFFIC_GENERATOR_PRIORITY 5
 #define PARAMETER_CHANGE_PRIORITY 2 // smaller than traffic generation
+/**
+ * If not 0 watchdog from core 0 is activated, since it contains blocking function
+*/
+#define WIFI_TASK_PRIORITY 0
 #define LOOP_PRIORITY 1
+
+/**
+ * When defined, code is on debug mode, and prints values with the defines
+ *
+ * If not defined code should not do prints
+*/
+#define MONITOR_DEBUG_MODE "useless value"
+
+#ifdef MONITOR_DEBUG_MODE
+#define PRINTLN(string) Serial.println(F(string))
+#define PRINT(string) Serial.print(F(string))
+#define PRINTLN_VALUE(value) Serial.println(value)
+#else
+#define PRINTLN(string) 
+#define PRINT(string) 
+#define PRINTLN_VALUE(string) 
+#endif
 
 /**
  * multiple increase, linear decrease
@@ -154,7 +175,7 @@ void receiveAndAnswerTask(void* unused_param){
     //Set destination address
     memcpy( answerFrame->addr_dest, receiveFrame->addr_src, MAC_ADDRESS_SIZE );
 
-    //Serial.println("Received frame on response task");
+    //PRINTLN("Received frame on response task");
     
     if(PACKET_IS_DATA(receiveFrame)){
       detachInterrupt(CC1101_GDO0);
@@ -164,13 +185,13 @@ void receiveAndAnswerTask(void* unused_param){
       //Warning; This really counts on the packet sent not being interrupted, and therefore causing its failure
       //Creating prints in this step to check if the packet was sent or not should not cause any grand issues during testing;
       if(!radio.sendData(answer_packet)){
-        Serial.println("Response failed, assumed task was interrupted");
+        PRINTLN("Response failed, assumed task was interrupted");
       }
 
       attachInterrupt(CC1101_GDO0, messageReceived, RISING);
 
 
-      Serial.println("SENT ACK");
+      PRINTLN("SENT ACK");
     }
     else if (PACKET_IS_RTS(receiveFrame)){
       detachInterrupt(CC1101_GDO0);
@@ -180,31 +201,16 @@ void receiveAndAnswerTask(void* unused_param){
       //Warning; This really counts on the packet sent not being interrupted, and therefore causing its failure
       //Creating prints in this step to check if the packet was sent or not should not cause any grand issues during testing;
       if(!radio.sendData(answer_packet)){
-        Serial.println("Response failed, assumed task was interrupted");
+        PRINTLN("Response failed, assumed task was interrupted");
       }
 
       attachInterrupt(CC1101_GDO0, messageReceived, RISING);
 
-      Serial.println("SENT CTS");
+      PRINTLN("SENT CTS");
     }
     else{
-      Serial.printf("Response task, frame control %d; or 0x%x (hex) was not recognized\n", (uint) receiveFrame->frame_control[0], receiveFrame->frame_control[0]);
-
-      /*
-      Serial.print(F("packet: len "));
-      Serial.println(packet_to_receive.length);
-      Serial.println(F("data: "));
-      Serial.printf("src: %02X:%02X:%02X:%02X:%02X:%02X\n", 
-            receiveFrame->addr_dest[0], 
-            receiveFrame->addr_dest[1], 
-            receiveFrame->addr_dest[2], 
-            receiveFrame->addr_dest[3], 
-            receiveFrame->addr_dest[4], 
-            receiveFrame->addr_dest[5]);
-      Serial.printf("frame_control[1]; %d; duration[0]: %d\n", (int) receiveFrame->frame_control[1], (int) receiveFrame->duration[0]);
-      Serial.print(F("Payload: "));
-      Serial.println((const char *) receiveFrame->payload);
-      */
+      PRINT("Response task, frame control not recognized, with value: ");
+      PRINTLN_VALUE(receiveFrame->frame_control[0]);
     }
 
   }
@@ -236,17 +242,9 @@ CCPACKET rts_packet;
 ieeeFrame * rtsFrame = (ieeeFrame *) rts_packet.data;
 
 
-
-
-
-
-
-
-
-
-
-
 /**
+  TODO as test task to delete or comment
+
   Test task. Should instead receive info, probably through a queue
 
   Uses mutex, as doing something like substituting CSMA_CONTROL when in CSMA_CONTROL
@@ -262,7 +260,7 @@ void coreZeroInitiator(void* unused_param){
   params->csma_contrl_params.used = true;
 
   while(true){
-    Serial.println(F("\nSecond core awake"));
+    PRINTLN("\nSecond core awake");
 
     flip_flop = !flip_flop;
 
@@ -274,7 +272,7 @@ void coreZeroInitiator(void* unused_param){
 
     xQueueSend(protocolParametersQueueHandle, (const void*) params_buffer, portMAX_DELAY);
     
-    Serial.println(F("Given values, does not wait for other task to change values\n"));
+    PRINTLN("Given values, does not wait for other task to change values\n");
 
     delay(2000);
     
@@ -302,7 +300,7 @@ void changeParametersTask(void* unusedParam){
 
   //Implementing queue solution for now
 
-  Serial.println(F("Created change parameters task"));
+  PRINTLN("Created change parameters task");
 
   uint8_t params_buffer[sizeof(macProtocolParameters)];
 
@@ -319,23 +317,23 @@ void changeParametersTask(void* unusedParam){
 
 #ifdef ANSWER_TASK_CHANGES_WITH_PARAMETERS
     radio.setIdleState(); // to avoid rx overflow
-    Serial.println("Set to idle state, avoiding answer task being activated");
+    PRINTLN("Set to idle state, avoiding answer task being activated");
 #endif
 
     xSemaphoreTake(xSemaphore, portMAX_DELAY);
-    Serial.println("\n\nCHANGE PARAMETERS GOT EXCLUSIVITY\n\n");
+    PRINTLN("\n\nCHANGE PARAMETERS GOT EXCLUSIVITY\n\n");
 
     if(params->csma_contrl_params.used){
       delete csma_control;
       switch(params->csma_contrl_params.backoff_protocol){
         case MILD:
           csma_control = new CSMA_CONTROL(&checkChannel, new MILD_BACKOFF());
-          Serial.println("Changed csma_control to MILD_BACKOFF");
+          PRINTLN("Changed csma_control to MILD_BACKOFF");
           break;
 
         case LINEAR:
           csma_control = new CSMA_CONTROL(&checkChannel, new LINEAR_BACKOFF());
-          Serial.println("Changed csma_control to LINEAR_BACKOFF");
+          PRINTLN("Changed csma_control to LINEAR_BACKOFF");
           break;
       }
     }
@@ -347,11 +345,11 @@ void changeParametersTask(void* unusedParam){
 
 #ifdef ANSWER_TASK_CHANGES_WITH_PARAMETERS
     radio.setRxState();
-    Serial.println("On rx state, allowing answer task activating");
+    PRINTLN("On rx state, allowing answer task activating");
 #endif
 
     xSemaphoreGive(xSemaphore);
-    Serial.println(F("CHANGED, delay\n"));
+    PRINTLN("CHANGED, delay\n");
 
   }
 
@@ -403,7 +401,7 @@ void setup() {
       "App Comm",
       100000,
       &myMacAddress,
-      0, //WARNING NEEDS TO BE 0, OTHERWISE WATCHDOG PROBLEMS
+      WIFI_TASK_PRIORITY,
       NULL,
       0 //putting wifi config on it's own core
     );
@@ -469,8 +467,8 @@ void generatorTask(void* unusedParam){
 void loop(){
     
     if(!trf_gen->isRunning()){
-        Serial.print(F("Initiating traffic..., loop has priority ")); 
-        Serial.println(uxTaskPriorityGet(NULL));
+        PRINT("Initiating traffic..., loop has priority "); 
+        PRINTLN_VALUE(uxTaskPriorityGet(NULL));
         xTaskCreatePinnedToCore(
           &generatorTask,     // Function to execute
           "traffic generator",   // Name of the task
@@ -490,7 +488,7 @@ void loop(){
  */
 void sender(CCPACKET packet_to_send) { 
 
-  Serial.println(F("TO SEND"));
+  PRINTLN("TO SEND");
 
   uint8_t retryCount = 0;
 
@@ -503,16 +501,16 @@ void sender(CCPACKET packet_to_send) {
   //should be able to answer while waiting for turn, so it cannot be deactivated
 
   if(retryCount == 10){
-    Serial.println(F("GIVING UP after retry limit reached"));
+    PRINTLN("GIVING UP after retry limit reached");
     xSemaphoreGive(xSemaphore);
     return;
   }
-  //Serial.println(radio.readStatusReg(CC1101_MARCSTATE));
+  //PRINTLN_VALUE(radio.readStatusReg(CC1101_MARCSTATE));
   csma_control->waitForTurn();
 
-  //Serial.println(F("OUT OF CSMA_WAIT"));
+  //PRINTLN("OUT OF CSMA_WAIT");
 
-  //Serial.println(radio.readStatusReg(CC1101_MARCSTATE));
+  //PRINTLN_VALUE(radio.readStatusReg(CC1101_MARCSTATE));
   ///*
   detachInterrupt(CC1101_GDO0);
   radio.sendData(rts_packet);
@@ -525,7 +523,7 @@ void sender(CCPACKET packet_to_send) {
   while(!packetWaiting){
     //sifs wait
     if(micros() - start_time >= SIFS){
-      Serial.println(F("WAIT FOR CTS FAILED"));
+      PRINTLN("WAIT FOR CTS FAILED");
       retryCount += 1;
       automaticResponse = true;
       csma_control->ackReceived(false);
@@ -536,7 +534,7 @@ void sender(CCPACKET packet_to_send) {
 
   //checks if is ok and is an ack ack
   if(receiver() && !PACKET_IS_CTS(receiveFrame)){
-    Serial.println(F("answer NOT a CTS"));
+    PRINTLN("answer NOT a CTS");
     retryCount += 1;
     csma_control->ackReceived(false);
     goto send;
@@ -555,7 +553,7 @@ void sender(CCPACKET packet_to_send) {
   while(!packetWaiting){
     //sifs wait
     if(micros() - start_time >= SIFS){
-      Serial.println(F("No ack"));
+      PRINTLN("No ack");
       retryCount += 1;
       automaticResponse = true;
       csma_control->ackReceived(false);
@@ -568,7 +566,7 @@ void sender(CCPACKET packet_to_send) {
   
   //checks if is ok and is an ack ack
   if(receiver() && !PACKET_IS_ACK(receiveFrame)){
-    Serial.println("answer is NOT an ACK");
+    PRINTLN("answer is NOT an ACK");
     retryCount += 1;
     csma_control->ackReceived(false);
     goto send;
@@ -580,7 +578,7 @@ void sender(CCPACKET packet_to_send) {
 
   xSemaphoreGive(xSemaphore);
 
-  Serial.println(F("Complete success"));
+  PRINTLN_VALUE("Complete success");
 }
 
 /**
