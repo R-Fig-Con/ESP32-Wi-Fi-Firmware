@@ -14,6 +14,9 @@ CSMA_CONTROL::CSMA_CONTROL(bool (*isChannelFree)(), CONTENTION_BACKOFF* contenti
     this->backoffCount = this->contentionAlgorithm->getBackoff();
     
 }
+CSMA_CONTROL::~CSMA_CONTROL(){
+    delete contentionAlgorithm;
+}
 
 void CSMA_CONTROL::waitForTurn(){
     notFree:

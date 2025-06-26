@@ -1,5 +1,12 @@
+//#include <WiFiManager.h> // https://github.com/tzapu/WiFiManager
+
+
+//QueueHandle_t protocolParametersQueueHandle = xQueueCreate( 1, sizeof(macProtocolParameters) );
+WiFiServer server(PORT);
+//WiFiManager wm;
+
 void wifi_com_task(void* parameter) {
-    uint8_t* mac_addr = (uint8_t*)parameter;
+    uint8_t* mac_addr = (uint8_t*) parameter;
 
     WiFiServer server(AP_PORT);
     WIFI_CONFIG_RET status = wifi_com_start(&server, mac_addr);

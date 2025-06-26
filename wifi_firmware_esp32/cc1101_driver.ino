@@ -686,7 +686,7 @@ void CC1101::setRxState(void)
 {
   cmdStrobe(CC1101_SRX);
 
-  //wait for state transition from idle to rx from receive
+  //wait for state transition to receive
   while(readStatusReg(CC1101_MARCSTATE) != RFSTATE_RX);
 }
 
