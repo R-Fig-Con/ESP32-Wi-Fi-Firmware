@@ -1,27 +1,29 @@
 void wifi_com_task(void* parameter) {
     uint8_t* mac_addr = (uint8_t*)parameter;
 
-    bool success = wifi_com_start(mac_addr);
+    WiFiServer server(AP_PORT);
+    WIFI_CONFIG_RET status = wifi_com_start(&server, mac_addr);
 
-    if (success) {
+    if (status.success) {
         Serial.println("WiFi COM started successfully.");
+        wifi_com_handle_con(status.server);
     } else {
         Serial.println("WiFi COM failed to start.");
     }
 
-    // Optional: delete the task if it's done
+    // Delete the task
     vTaskDelete(NULL);
 }
 
-bool wifi_com_start(uint8_t my_mac[MAC_ADDRESS_SIZE]){
-    // Define static IP and network range
-    IPAddress local_IP(10, 0, 0, 1);      // ESP32 AP IP
-    IPAddress gateway(10, 0, 0, 1);       // Same as local IP
-    IPAddress subnet(255, 255, 255, 0);   // Subnet mask
+WIFI_CONFIG_RET wifi_com_start(WiFiServer* server, uint8_t my_mac[MAC_ADDRESS_SIZE]){
+    
+    IPAddress local_IP(AP_IP_ARR[0], AP_IP_ARR[1], AP_IP_ARR[2], AP_IP_ARR[3]);
+    IPAddress gateway(AP_IP_ARR[0], AP_IP_ARR[1], AP_IP_ARR[2], AP_IP_ARR[3]);
+    IPAddress subnet(255, 255, 255, 0);
 
-    WiFiServer server(PORT);
+    WIFI_CONFIG_RET ret = {server, false};
 
-    char ssid[6 + MAC_STR_LEN + 1] = "ESP32-"; //Base(6) + MAC(6) + null terminator
+    char ssid[6 + MAC_STR_LEN + 1] = "ESP32-"; // Base(6) + MAC(6) + null terminator
     sprintf(ssid + 6, "%02X%02X%02X%02X%02X%02X", 
         my_mac[0], my_mac[1], my_mac[2], my_mac[3], my_mac[4], my_mac[5]);
 
@@ -34,18 +36,51 @@ bool wifi_com_start(uint8_t my_mac[MAC_ADDRESS_SIZE]){
     // Configure static IP for the SoftAP interface
     if (!WiFi.softAPConfig(local_IP, gateway, subnet)) {
         Serial.println("WiFi Config Failed!");
-        return false;
+        return ret;
     }
 
     // Start the SoftAP with SSID and password
     if (!WiFi.softAP(ssid, password)) {
         Serial.println("WiFi Start Failed!");
-        return false;
+        return ret;
     }
 
-    server.begin();
+    server->begin();
 
-    Serial.printf("Listening on %s:%d\n", WiFi.softAPIP().toString(), PORT);
+    Serial.printf("Listening on %s:%d\n", WiFi.softAPIP().toString(), AP_PORT);
 
-    return true;
+    ret.success = true;
+    return ret;
+}
+
+void wifi_com_handle_con(WiFiServer* server){
+
+    while(true){
+
+        WiFiClient client = server->accept();
+
+        if (client) {
+            Serial.println("Client connected.");
+
+            // Wait until the client sends data
+            while (client.connected()) {
+                if (client.available()) {
+                    // Read data from client
+                    String message = client.readStringUntil('\n'); // Read until newline
+                    Serial.print("Received: ");
+                    Serial.println(message);
+
+                    // Process message or respond
+                    client.print("Message received on the ESP!");
+                }
+            }
+
+            // Client disconnected
+            client.stop();
+            Serial.println("Client disconnected.");
+        }
+
+        delay(10);
+    }
+
 }
