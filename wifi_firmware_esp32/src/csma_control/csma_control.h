@@ -96,4 +96,13 @@ class CSMA_CONTROL
         */
        void ackReceived(bool wasReceived);
 
+       /**
+        * TEST FUNCTION
+        * 
+        * Access to backoff_version
+        */
+       int id(){
+        return contentionAlgorithm->id();
+       }
+
 };

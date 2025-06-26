@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <WebServer.h>
 #include "esp_system.h"
 #include "esp_wifi.h"
 #include "src/cc1101_driver/cc1101_driver.h"
@@ -9,17 +10,28 @@
 #include "src/param_data/param_data.h"
 
 /**
+  * cache Test
+  * 
+  * Warning using http to unblock print does not seem to work, use serial monitor write 
+*/
+
+/**
  * to uncomment if answer task logic changes with mac protocol parameter change
 */
 #define ANSWER_TASK_CHANGES_WITH_PARAMETERS "Irrelevant value"
 
 #define ANSWER_TASK_PRIORITY 10
 #define TRAFFIC_GENERATOR_PRIORITY 5
-#define PARAMETER_CHANGE_PRIORITY 2 // smaller than traffic generation
+#define PARAMETER_CHANGE_PRIORITY 3 // smaller than traffic generation
 /**
  * If not 0 watchdog from core 0 is activated, since it contains blocking function
 */
 #define WIFI_TASK_PRIORITY 0
+/**
+ * Not used as priority of loop is automatic
+ *
+ * done as documentation, comparing to other task priorities
+*/
 #define LOOP_PRIORITY 1
 
 /**
@@ -27,17 +39,26 @@
  *
  * If not defined code should not do prints
 */
-#define MONITOR_DEBUG_MODE "useless value"
+//#define MONITOR_DEBUG_MODE "useless value"
 
 #ifdef MONITOR_DEBUG_MODE
-#define PRINTLN(string) Serial.println(F(string))
-#define PRINT(string) Serial.print(F(string))
-#define PRINTLN_VALUE(value) Serial.println(value)
+  #define PRINTLN(string) Serial.println(F(string))
+  #define PRINT(string) Serial.print(F(string))
+  #define PRINTLN_VALUE(value) Serial.println(value)
 #else
-#define PRINTLN(string) 
-#define PRINT(string) 
-#define PRINTLN_VALUE(string) 
+  #define PRINTLN(string) 
+  #define PRINT(string) 
+  #define PRINTLN_VALUE(string) 
 #endif
+
+/**
+ * If defined, it unblocks through a http request to http://IP_ADDRESS/list; does not seem to work
+ * 
+ * If not defined unblocks through serial write. Click enter directly on serial monitor write box
+ * of arduino
+*/
+//#define UNBLOCK_PRINT_WITH_HTTP
+
 
 /**
  * multiple increase, linear decrease
@@ -59,6 +80,10 @@ class MILD_BACKOFF: public CONTENTION_BACKOFF{
     if (newWindow <= this->maximum){
       this->contentionWindow = newWindow;
     }
+  }
+
+  int id(){
+    return MILD;
   }
 
   public:
@@ -87,6 +112,10 @@ class LINEAR_BACKOFF: public CONTENTION_BACKOFF{
     if (newWindow <= this->maximum){
       this->contentionWindow = newWindow;
     }
+  }
+
+  int id(){
+    return LINEAR;
   }
 
   public:
@@ -165,6 +194,8 @@ void receiveAndAnswerTask(void* unused_param){
 
       radio.setIdleState();
 
+      // // Serial.println("MAC NOT FOR ME; TO DELETE PRINT");
+
       while (micros() - wait_start <= wait_time);
 
       radio.setRxState();
@@ -192,6 +223,7 @@ void receiveAndAnswerTask(void* unused_param){
 
 
       PRINTLN("SENT ACK");
+      // // Serial.println("SENT ACK DELETE");
     }
     else if (PACKET_IS_RTS(receiveFrame)){
       detachInterrupt(CC1101_GDO0);
@@ -207,6 +239,7 @@ void receiveAndAnswerTask(void* unused_param){
       attachInterrupt(CC1101_GDO0, messageReceived, RISING);
 
       PRINTLN("SENT CTS");
+      // // Serial.println("SENT CTS DELETE");
     }
     else{
       PRINT("Response task, frame control not recognized, with value: ");
@@ -243,6 +276,12 @@ ieeeFrame * rtsFrame = (ieeeFrame *) rts_packet.data;
 
 
 /**
+ * semaphore used either to gain access to radio mac protocol
+ * wether to read or write
+*/
+SemaphoreHandle_t xSemaphore = xSemaphoreCreateMutex();
+
+/**
   TODO as test task to delete or comment
 
   Test task. Should instead receive info, probably through a queue
@@ -270,51 +309,6 @@ void coreZeroInitiator(void* unused_param){
       params->csma_contrl_params.backoff_protocol = LINEAR;
     }
 
-    xQueueSend(protocolParametersQueueHandle, (const void*) params_buffer, portMAX_DELAY);
-    
-    PRINTLN("Given values, does not wait for other task to change values\n");
-
-    delay(2000);
-    
-  }
-
-}
-
-
-/**
- * semaphore used either to gain access to radio mac protocol
- * wether to read or write
-*/
-SemaphoreHandle_t xSemaphore = xSemaphoreCreateMutex();
-
-/**
- * Task to change parameters of protocol, running on the same core to ensure cache is correct
- * 
- * Not responsible of collecting parameters, receives them
- *
- * TODO consider if parameter receive should happen either by  function params and task is recreated
- * each time or it should receive them from a queue
- *
-*/
-void changeParametersTask(void* unusedParam){
-
-  //Implementing queue solution for now
-
-  PRINTLN("Created change parameters task");
-
-  uint8_t params_buffer[sizeof(macProtocolParameters)];
-
-  macProtocolParameters *params = (macProtocolParameters*) params_buffer;
-
-  while(true){
-
-    /**
-     * check if portMAX_DELAY wait is forever
-    */
-    if(xQueueReceive(protocolParametersQueueHandle, params_buffer, portMAX_DELAY) == pdFALSE){
-      continue;
-    }
-
 #ifdef ANSWER_TASK_CHANGES_WITH_PARAMETERS
     radio.setIdleState(); // to avoid rx overflow
     PRINTLN("Set to idle state, avoiding answer task being activated");
@@ -329,15 +323,16 @@ void changeParametersTask(void* unusedParam){
         case MILD:
           csma_control = new CSMA_CONTROL(&checkChannel, new MILD_BACKOFF());
           PRINTLN("Changed csma_control to MILD_BACKOFF");
+          Serial.println(F("CHANGED TO MILD; DELETE"));
           break;
 
         case LINEAR:
           csma_control = new CSMA_CONTROL(&checkChannel, new LINEAR_BACKOFF());
           PRINTLN("Changed csma_control to LINEAR_BACKOFF");
+          Serial.println(F("CHANGED TO LINEAR; DELETE"));
           break;
       }
     }
-
 
     if(params->traf_gen_params.used){
       trf_gen->setTime(params->traf_gen_params.time_mode, params->traf_gen_params.waiting_time);
@@ -351,22 +346,106 @@ void changeParametersTask(void* unusedParam){
     xSemaphoreGive(xSemaphore);
     PRINTLN("CHANGED, delay\n");
 
+    delay(2000);
+    
   }
 
 }
+
+int csma_version[2000];
+int csma_version_size = 0;
+
+/**
+ * task to check csma_version history in core 1
+ *
+ * to use when changing on core 0, for task reasons
+ *
+ * priority should be lower than answer and traffic as to not block
+*/
+void print_csma_version(void* unused){
+  
+  Serial.println("printer init");
+
+  while(true){
+
+#ifdef UNBLOCK_PRINT_WITH_HTTP
+    vTaskSuspend(NULL);
+#else
+    while(Serial.available() <= 0);
+    Serial.read();    
+#endif
+
+    Serial.println("printer unblocked");
+
+    for(int i = 0; i < csma_version_size; i++){
+      Serial.printf("%d;\t", csma_version[csma_version_size]);
+    }
+
+    Serial.println(F("\n\n"));
+
+  }
+
+}
+
+
+
+TaskHandle_t printerHandle = NULL;
+
+#ifdef UNBLOCK_PRINT_WITH_HTTP
+
+  WebServer http_server(80);
+
+  const char *ssid = "IBG"; // internet name
+  const char *password = "b5bb300252"; // internet password, belive it can be null if it does not have one
+
+  void unblock_print() {
+    vTaskResume(printerHandle);
+    http_server.send(200, "text/plain", "");
+  }
+
+  void http_server_task(void* unused){
+
+    Serial.println("\n\nTo start SERVER");
+    http_server.begin();
+    Serial.println("Server started");
+
+    while(true){
+      http_server.handleClient();
+    }
+
+  }
+
+#endif
 
 void setup() {
 
     // Serial communication for debug
     Serial.begin(57600);
 
+    delay(1000);
     // Wifi, for getting the MAC address.
+    //WiFi.mode(WIFI_AP);
+
+#ifdef UNBLOCK_PRINT_WITH_HTTP
+    WiFi.begin(ssid, password);
+    // Wait for connection
+    while (WiFi.status() != WL_CONNECTED) {
+      delay(500);
+      Serial.print(".");
+    }
+
+    Serial.print("\tConnected! IP address: ");
+    Serial.println(WiFi.localIP());
+
+    http_server.on("/list", HTTP_GET, unblock_print);
+
+#else
     WiFi.mode(WIFI_AP);
+#endif
+
     //WiFi.STA.begin(); -- No need to start WiFi to get MAC
     //esp_wifi_get_mac(WIFI_IF_STA, myMacAddress);
     esp_wifi_get_mac(WIFI_IF_AP, myMacAddress);
-
-    delay(1000);
 
     Serial.printf("My MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", 
       myMacAddress[0], 
@@ -397,7 +476,7 @@ void setup() {
     
     
     xTaskCreatePinnedToCore(
-      &wifi_com_task,
+      &coreZeroInitiator,
       "App Comm",
       100000,
       &myMacAddress,
@@ -405,6 +484,19 @@ void setup() {
       NULL,
       0 //putting wifi config on it's own core
     );
+
+
+#ifdef UNBLOCK_PRINT_WITH_HTTP
+    xTaskCreatePinnedToCore(
+      &http_server_task,
+      "Http server",
+      100000,
+      NULL,
+      WIFI_TASK_PRIORITY,
+      NULL,
+      0 //putting wifi config on it's own core
+    );
+#endif
 
     delay(2000);
 
@@ -424,11 +516,20 @@ void setup() {
     PACKET_TO_RTS(rtsFrame);
     
     //4C:11:AE:64:D1:8D
-    uint8_t dstMacAddress[6] = {0x4C, 0x11, 0xAE, 0x64, 0xD1, 0x8D};
+    //EDU: BOX 1C:69:20:30:DF:41
+    uint8_t dstMacAddress[6] = {0x1C, 0x69, 0x20, 0x30, 0xDF, 0x41};
     memcpy(rtsFrame->addr_dest, dstMacAddress, MAC_ADDRESS_SIZE);
 
+    Serial.printf("Dst MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", 
+      rtsFrame->addr_dest[0], 
+      rtsFrame->addr_dest[1], 
+      rtsFrame->addr_dest[2], 
+      rtsFrame->addr_dest[3], 
+      rtsFrame->addr_dest[4], 
+      rtsFrame->addr_dest[5]);
+
     trf_gen = new TRAFFIC_GEN(&sender, myMacAddress, dstMacAddress, rts_duration, data_length);
-    trf_gen->setTime(TRF_GEN_GAUSS, 6000);
+    trf_gen->setTime(TRF_GEN_CONST, 3000);
     
     
     xTaskCreatePinnedToCore(
@@ -437,16 +538,6 @@ void setup() {
       10000, //no thought used to decide size
       NULL,
       ANSWER_TASK_PRIORITY,
-      &receiveHandle,
-      1 //putting related to cc1101 on same core
-    );
-
-    xTaskCreatePinnedToCore(
-      &changeParametersTask,
-      "change parameters task",
-      5000, //no thought used to decide size
-      NULL,
-      PARAMETER_CHANGE_PRIORITY, 
       &receiveHandle,
       1 //putting related to cc1101 on same core
     );
@@ -465,8 +556,9 @@ void generatorTask(void* unusedParam){
 }
 
 void loop(){
-    
+    //Serial.println("ON LOOP TO DELETE");
     if(!trf_gen->isRunning()){
+        Serial.println("ON LOOP TO DELETE; traffic generation startup");
         PRINT("Initiating traffic..., loop has priority "); 
         PRINTLN_VALUE(uxTaskPriorityGet(NULL));
         xTaskCreatePinnedToCore(
@@ -480,6 +572,19 @@ void loop(){
         );
     }
 
+    if(printerHandle == NULL){
+      Serial.println("ON LOOP TO DELETE; printer startup");
+      xTaskCreatePinnedToCore(
+        &print_csma_version,
+        "print csma version",
+        10000, //no thought used to decide size
+        NULL,
+        LOOP_PRIORITY + 1,
+        &printerHandle,
+        1 //putting related to cc1101 on same core
+      );
+    }
+
 }
 
 /**
@@ -489,10 +594,18 @@ void loop(){
 void sender(CCPACKET packet_to_send) { 
 
   PRINTLN("TO SEND");
+  Serial.println("SEND TO DELETE; sending");
 
   uint8_t retryCount = 0;
 
   unsigned long start_time; //used for both rts and data wait
+
+
+  if(csma_version_size < 2000){
+    csma_version[csma_version_size] = csma_control->id();
+    csma_version_size += 1;
+  }
+
 
   xSemaphoreTake(xSemaphore, portMAX_DELAY);
   //Label
@@ -524,6 +637,7 @@ void sender(CCPACKET packet_to_send) {
     //sifs wait
     if(micros() - start_time >= SIFS){
       PRINTLN("WAIT FOR CTS FAILED");
+      // // Serial.println(F("Wait for cts; to delete and use define"));
       retryCount += 1;
       automaticResponse = true;
       csma_control->ackReceived(false);

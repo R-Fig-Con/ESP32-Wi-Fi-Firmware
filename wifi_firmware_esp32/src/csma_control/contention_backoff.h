@@ -36,4 +36,11 @@ class CONTENTION_BACKOFF{
           * increase contention window as desired by implementer
           */
          virtual void increaseContentionWindow();
+
+         /**
+          * test function, used to check if cache changed
+          * 
+          * Ensure id given is unique
+          */
+         virtual int id();
 };
