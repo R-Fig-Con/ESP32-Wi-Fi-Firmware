@@ -447,7 +447,7 @@ void setup() {
       5000, //no thought used to decide size
       NULL,
       PARAMETER_CHANGE_PRIORITY, 
-      &receiveHandle,
+      NULL,
       1 //putting related to cc1101 on same core
     );
     
