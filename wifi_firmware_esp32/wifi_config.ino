@@ -2,7 +2,7 @@
 
 
 //QueueHandle_t protocolParametersQueueHandle = xQueueCreate( 1, sizeof(macProtocolParameters) );
-WiFiServer server(PORT);
+WiFiServer server(AP_PORT);
 //WiFiManager wm;
 
 void wifi_com_task(void* parameter) {
