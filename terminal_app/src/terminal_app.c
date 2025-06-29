@@ -6,7 +6,7 @@
 #include "terminal_app.h"
 #include "util.h"
 
-int communicate();
+int communicate(const int sockfd);
 
 int main() {
     struct sockaddr_in addr;
@@ -68,7 +68,7 @@ int communicate(const int sockfd){
 
         for (i = 0; i < NUM_OPTIONS; ++i) {
 
-            if(options[i].ch_code != input_code){
+            if(options[i].opt_code != input_code){
                 continue;
             }
             
@@ -77,7 +77,10 @@ int communicate(const int sockfd){
                 case RETURN_TERMINATE:
                     return RETURN_SUCCESS;
                 case RETURN_ESP_ERROR:
-                    printf("ESP error: %s\n", buffer+1); //First byte is status
+                    printf("ESP error: %s\n", buffer+1); //First byte of response is status
+                    break;
+                case RETURN_INPUT_ERROR:
+                    printf("Error proccessing input.");
                     break;
                 case RETURN_SUCCESS:
                 default:
@@ -96,36 +99,49 @@ int communicate(const int sockfd){
     return RETURN_APP_ERROR;
 }
 
+uint16_t set_control_bytes(char* buffer, uint16_t len, char opt_code){
+    
+    //int len = len + CONTROL_BYTES;
+    len += CONTROL_BYTES;
+    buffer[0] = len>>8;
+    buffer[1] = len & 0x0F; // ESP32 is little endian
+    buffer[2] = opt_code; // Command
+
+    return len;
+}
+
 int handle_help(const int sockfd){
 
     for (int i = 0; i < NUM_OPTIONS; ++i) {
-        printf("\t'%c': %s\n", options[i].ch_code, options[i].help_msg);
+        printf("\t'%c': %s\n", options[i].opt_code, options[i].help_msg);
     }
 
     return 0;
 }
 
 int handle_message(const int sockfd){
-    // TODO(Implement, this was only for testing)
+    
+    printf("Message for ESP to send: ");
+    if (fgets(buffer + CONTROL_BYTES, BUFFER_SIZE-CONTROL_BYTES, stdin) == NULL) {
+        // Error or EOF
+        return RETURN_INPUT_ERROR;
+    }
 
-    // Send a message
-    const char *message = "Hello from the app!";
-    send(sockfd, message, strlen(message), 0);
-    printf("Message sent to ESP32.\n");
+    // Just "strlen(buffer)" is undefined behaviour because the first bytes have not been set and might be '\0'
+    uint16_t len = strlen(buffer + CONTROL_BYTES);
+    if(buffer[len-1]=='\n') len--;
+    len = set_control_bytes(buffer, len, MESSAGE_OPT_CODE);
+
+    // Send message
+    send(sockfd, buffer, len, 0);
+    printf("Message config sent to ESP node.\n");
 
     // Receive response
     int bytes_read = read(sockfd, buffer, BUFFER_SIZE - 1);
     buffer[bytes_read] = '\0';
-    printf("Response from ESP32: %s\n", buffer);
-
-    // Send again
-    const char *message_2 = "Hello again!";
-    send(sockfd, message_2, strlen(message_2), 0);
-    printf("Message sent to ESP32.\n");
-
-    bytes_read = read(sockfd, buffer, BUFFER_SIZE - 1);
-    buffer[bytes_read] = '\0';
-    printf("Response from ESP32: %s\n", buffer);
+    if(buffer[0] != ESP_RESP_OK){
+        return RETURN_ESP_ERROR;
+    }
 
     return RETURN_SUCCESS;
 }
@@ -137,8 +153,21 @@ int handle_termination(const int sockfd){
 
 int handle_status(const int sockfd){
 
-    //TODO(Request current config - interval type, time interval, message, destination address - from ESP)
-    printf("TODO(Request current config - interval type, time interval, message, destination address - from ESP)\n");
+    uint16_t len = set_control_bytes(buffer, 0, STATUS_OPT_CODE);
+
+    // Send message
+    send(sockfd, buffer, len, 0);
+    printf("Time config sent to ESP node.\n");
+
+    // Receive response
+    int bytes_read = read(sockfd, buffer, BUFFER_SIZE - 1);
+    buffer[bytes_read] = '\0';
+    if(buffer[0] != ESP_RESP_OK){
+        return RETURN_ESP_ERROR;
+    }
+
+    //TODO(Proccess response from ESP and print interval type, time interval, message, and destination address)
+    printf("TODO(Proccess response from ESP and print interval type, time interval, message, and destination address)\n");
 
     return RETURN_SUCCESS;
 }
@@ -161,7 +190,7 @@ int handle_time(const int sockfd){
         printf("Time (milliseconds): ");
         if (fgets(buffer, BUFFER_SIZE, stdin) == NULL) {
             // Error or EOF
-            return RETURN_APP_ERROR;
+            return RETURN_INPUT_ERROR;
         }
 
         number = get_number_from_str(buffer, BUFFER_SIZE);
@@ -172,14 +201,15 @@ int handle_time(const int sockfd){
         printf("\t- Please introduce a valid number.\n");
     }
 
-    // Send command 2 bytes, + 2 bytes of value
-    buffer[0] = 't'; //0 - Set Time Command
-    buffer[1] = input_code; //1 - Type of time
-    fit_number_w_left_padding(buffer+2, 16, number.value); //2 & 3 - Time interval value
-    buffer[4] = '\0'; //4
+    uint16_t len = sizeof(input_code) + sizeof(number.value); //The sub-command byte + bytes of time
+    len = set_control_bytes(buffer, len, TIME_OPT_CODE);
+
+    buffer[CONTROL_BYTES] = input_code; // Type of time
+    buffer[CONTROL_BYTES+1] = number.value >> 8;
+    buffer[CONTROL_BYTES+2] = number.value & 0x0F; //ESP is little endian
 
     // Send message
-    send(sockfd, buffer, 4, 0);
+    send(sockfd, buffer, len, 0);
     printf("Time config sent to ESP node.\n");
 
     // Receive response
@@ -194,8 +224,36 @@ int handle_time(const int sockfd){
 
 int handle_destination(const int sockfd){
 
-    //TODO(Set destination address for ESP)
-    printf("TODO(Set destination address for ESP)\n");
+    char mac_addr[MAC_ADDRESS_SIZE];
+    while(1){
+        printf("Destination MAC Address: ");
+        if (fgets(buffer, BUFFER_SIZE, stdin) == NULL) {
+            // Error or EOF
+            return RETURN_INPUT_ERROR;
+        }
 
-    return 0;
+        int status = get_mac_from_str(buffer, BUFFER_SIZE, mac_addr, MAC_ADDRESS_SIZE);
+
+        if(status == MAC_IS_VALID){
+            break;
+        }
+        printf("\t- Please introduce a valid address.\n");
+    }
+
+    uint16_t len = MAC_ADDRESS_SIZE;
+    len = set_control_bytes(buffer, len, DEST_OPT_CODE);
+    memcpy(buffer+CONTROL_BYTES, mac_addr, MAC_ADDRESS_SIZE);
+
+    // Send message
+    send(sockfd, buffer, len, 0);
+    printf("Destination config sent to ESP node.\n");
+
+    // Receive response
+    int bytes_read = read(sockfd, buffer, BUFFER_SIZE - 1);
+    buffer[bytes_read] = '\0';
+    if(buffer[0] != ESP_RESP_OK){
+        return RETURN_ESP_ERROR;
+    }
+
+    return RETURN_SUCCESS;
 }
