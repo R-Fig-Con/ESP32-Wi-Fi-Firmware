@@ -101,13 +101,12 @@ int communicate(const int sockfd){
 
 uint16_t set_control_bytes(char* buffer, uint16_t len, char opt_code){
     
-    //int len = len + CONTROL_BYTES;
     len += CONTROL_BYTES;
-    buffer[0] = len>>8;
-    buffer[1] = len & 0x0F; // ESP32 is little endian
+    buffer[0] = len & 0xFF;
+    buffer[1] = len>>8; //ESP is little endian, so the most significant bits come last
     buffer[2] = opt_code; // Command
 
-    return len;
+    return len;// + CONTROL_BYTES;
 }
 
 int handle_help(const int sockfd){
@@ -204,9 +203,9 @@ int handle_time(const int sockfd){
     uint16_t len = sizeof(input_code) + sizeof(number.value); //The sub-command byte + bytes of time
     len = set_control_bytes(buffer, len, TIME_OPT_CODE);
 
-    buffer[CONTROL_BYTES] = input_code; // Type of time
+    buffer[CONTROL_BYTES] = input_code; // Type of interval
     buffer[CONTROL_BYTES+1] = number.value >> 8;
-    buffer[CONTROL_BYTES+2] = number.value & 0x0F; //ESP is little endian
+    buffer[CONTROL_BYTES+2] = number.value & 0xFF;
 
     // Send message
     send(sockfd, buffer, len, 0);
@@ -243,6 +242,9 @@ int handle_destination(const int sockfd){
     uint16_t len = MAC_ADDRESS_SIZE;
     len = set_control_bytes(buffer, len, DEST_OPT_CODE);
     memcpy(buffer+CONTROL_BYTES, mac_addr, MAC_ADDRESS_SIZE);
+
+    /*printf("New MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", 
+        mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]); //DEBUG */
 
     // Send message
     send(sockfd, buffer, len, 0);
