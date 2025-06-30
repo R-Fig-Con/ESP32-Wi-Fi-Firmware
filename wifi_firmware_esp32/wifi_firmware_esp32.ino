@@ -7,6 +7,7 @@
 #include "src/csma_control/csma_control.h"
 #include "src/wifi_config/wifi_config.h"
 #include "src/param_data/param_data.h"
+#include "src/mac_data/mac_data.h"
 
 /**
  * to uncomment if answer task logic changes with mac protocol parameter change
@@ -108,6 +109,8 @@ uint8_t myMacAddress[MAC_ADDRESS_SIZE];
 TRAFFIC_GEN * trf_gen;
 
 CSMA_CONTROL * csma_control;
+
+mac_data data;
 
 /*
  * indicates to the code if packet should use automatic response or if is expecting data and code will linearly deal with it
@@ -323,6 +326,8 @@ void changeParametersTask(void* unusedParam){
     xSemaphoreTake(xSemaphore, portMAX_DELAY);
     PRINTLN("\n\nCHANGE PARAMETERS GOT EXCLUSIVITY\n\n");
 
+    data.failures = 0; data.successes = 0; data.startTime = micros();
+
     if(params->csma_contrl_params.used){
       delete csma_control;
       switch(params->csma_contrl_params.backoff_protocol){
@@ -452,6 +457,8 @@ void setup() {
     );
     
 
+    data.startTime = micros();
+
     attachInterrupt(CC1101_GDO0, messageReceived, RISING);
 
     radio.setRxState();
@@ -503,6 +510,7 @@ void sender(CCPACKET packet_to_send) {
   if(retryCount == 10){
     PRINTLN("GIVING UP after retry limit reached");
     xSemaphoreGive(xSemaphore);
+    data.failures += 1;
     return;
   }
   //PRINTLN_VALUE(radio.readStatusReg(CC1101_MARCSTATE));
@@ -577,6 +585,7 @@ void sender(CCPACKET packet_to_send) {
   csma_control->ackReceived(true);
 
   xSemaphoreGive(xSemaphore);
+  data.successes += 1;
 
   PRINTLN_VALUE("Complete success");
 }
