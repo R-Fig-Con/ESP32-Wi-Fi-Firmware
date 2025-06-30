@@ -62,6 +62,9 @@ int communicate(const int sockfd){
     char input_code;
     int status, i;
 
+    printf("Options:\n");
+    handle_help(sockfd);
+
     while(1){
         printf("Enter a command: ");
         input_code = get_char_and_flush();

@@ -28,16 +28,16 @@
  *
  * If not defined code should not do prints
 */
-#define MONITOR_DEBUG_MODE "useless value"
+#define MONITOR_DEBUG_MODE //Does not need a value
 
 #ifdef MONITOR_DEBUG_MODE
 #define PRINTLN(string) Serial.println(F(string))
 #define PRINT(string) Serial.print(F(string))
 #define PRINTLN_VALUE(value) Serial.println(value)
 #else
-#define PRINTLN(string) 
-#define PRINT(string) 
-#define PRINTLN_VALUE(string) 
+#define PRINTLN(void) 
+#define PRINT(void) 
+#define PRINTLN_VALUE(void) 
 #endif
 
 /**

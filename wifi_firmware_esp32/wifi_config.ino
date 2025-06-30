@@ -88,9 +88,10 @@ void wifi_handle_message(WiFiClient* client, uint8_t* buffer, uint16_t len){
         client->write( rsp, strlen(rsp) );
     }
 
-    //For DEBUG
-    Serial.printf("Len: %d\nNew Message: %s\n", len, buffer);
-    //---------
+    PRINT("Len: ");
+    PRINTLN_VALUE(len);
+    PRINT("New Message: ");
+    PRINTLN(buffer);
 
     //TODO(Set Message in traffic generator)
 
@@ -118,9 +119,11 @@ void wifi_handle_time(WiFiClient* client, uint8_t* buffer, uint16_t len){
         rsp[0] = ESP_RESP_ERROR;
         client->write( rsp, strlen(rsp) );
     }
-    //For DEBUG
-    Serial.printf("Len: %d\nTime 1 = %u || Time 2 = %u\nNew Time: %u\n", len, buffer[1], buffer[2], time);
-    //---------
+    
+    PRINT("Len: ");
+    PRINTLN_VALUE(len);
+    PRINT("New Time: ");
+    PRINTLN_VALUE(time);
 
     //TODO(Set Time in traffic generator)
 
@@ -135,13 +138,13 @@ void wifi_handle_destination(WiFiClient* client, uint8_t* buffer, uint16_t len){
         client->write( rsp, strlen(rsp) );
     }
 
-    //For DEBUG
+    #ifdef MONITOR_DEBUG_MODE
     char dst_mac[MAC_STR_LEN + 1];
     sprintf(dst_mac, "%02X:%02X:%02X:%02X:%02X:%02X", 
         buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5]);
-
-    Serial.printf("New Dest: %s\n", dst_mac);
-    //---------
+    PRINT("New Dest: ");
+    PRINTLN_VALUE(dst_mac);
+    #endif
 
     //TODO(Set Dest in traffic generator)
 
@@ -179,7 +182,8 @@ void wifi_com_handle_con(WiFiServer* server){
                     client.readBytes((char*)&len, sizeof(len)); // Read length
 
                     len -= 2; //Already read the first 2 bytes;
-                    Serial.printf("Length = %d\n", len); //Debug
+                    PRINT("Length = ");
+                    PRINTLN_VALUE(len);
 
                     uint8_t buffer[len];
                     client.readBytes((char*)buffer, len);

@@ -46,7 +46,7 @@ const struct OPTION options[NUM_OPTIONS] = {
     { MESSAGE_OPT_CODE, "set message for the ESP to send", handle_message},
     { TIME_OPT_CODE, "set the time interval", handle_time},
     { DEST_OPT_CODE, "set destination mac address", handle_destination},
-    { HELP_OPT_CODE, "print help message", handle_help}
+    { HELP_OPT_CODE, "print this help message", handle_help}
 };
 
 // Calculate number of elements in the array
