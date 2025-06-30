@@ -54,11 +54,48 @@ WIFI_CONFIG_RET wifi_com_start(WiFiServer* server, uint8_t my_mac[MAC_ADDRESS_SI
 }
 
 void wifi_handle_status(WiFiClient* client, uint8_t* buffer, uint16_t len){
-    //TODO
+
+    (void)buffer;
+    (void)len;
+
+    //TODO(Get current Message, Time, Interval Type, and Destination from traffic generator)
+    char msg[] = "current message";
+    uint16_t time = 300;
+    char type = 'c';
+    char macDst[MAC_ADDRESS_SIZE] = {0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC};
+    //------
+    int msg_len = strlen(msg);
+
+    const int size = 2048;
+    int offset = 0;
+
+    char rsp[size];
+    rsp[offset++] = ESP_RESP_OK;
+    rsp[offset++] = type;
+    rsp[offset++] = time & 0xFF;
+    rsp[offset++] = time >> 8;
+    memcpy(rsp+offset, macDst, MAC_ADDRESS_SIZE);
+    memcpy(rsp+offset+MAC_ADDRESS_SIZE, msg, msg_len);
+    
+    //Status byte + type + time + mac + msg
+    client->write( rsp, 1 + sizeof(type) + sizeof(time) + MAC_ADDRESS_SIZE + msg_len );
 }
 
 void wifi_handle_message(WiFiClient* client, uint8_t* buffer, uint16_t len){
-    //TODO
+    char rsp[] = ".Error setting message.";
+    if( len < 1 ){
+        rsp[0] = ESP_RESP_ERROR;
+        client->write( rsp, strlen(rsp) );
+    }
+
+    //For DEBUG
+    Serial.printf("Len: %d\nNew Message: %s\n", len, buffer);
+    //---------
+
+    //TODO(Set Message in traffic generator)
+
+    rsp[0] = ESP_RESP_OK;
+    client->write( rsp, 1 );
 }
 
 void wifi_handle_time(WiFiClient* client, uint8_t* buffer, uint16_t len){
@@ -69,7 +106,7 @@ void wifi_handle_time(WiFiClient* client, uint8_t* buffer, uint16_t len){
         client->write( rsp_type, strlen(rsp_type) );
     }
 
-    char rsp[] = ".Invalid time 1.";
+    char rsp[] = ".Invalid time";
     if( len-1 != 2 ){
         rsp[0] = ESP_RESP_ERROR;
         client->write( rsp, strlen(rsp) );
@@ -77,10 +114,9 @@ void wifi_handle_time(WiFiClient* client, uint8_t* buffer, uint16_t len){
 
     uint16_t time = ( ((uint16_t)buffer[1]) <<8) + (uint16_t)buffer[2];
 
-    char error2[] = ".Invalid time 2.";
     if( time < 50 ){
-        error2[0] = ESP_RESP_ERROR;
-        client->write( error2, strlen(error2) );
+        rsp[0] = ESP_RESP_ERROR;
+        client->write( rsp, strlen(rsp) );
     }
     //For DEBUG
     Serial.printf("Len: %d\nTime 1 = %u || Time 2 = %u\nNew Time: %u\n", len, buffer[1], buffer[2], time);

@@ -102,14 +102,16 @@ int communicate(const int sockfd){
 uint16_t set_control_bytes(char* buffer, uint16_t len, char opt_code){
     
     len += CONTROL_BYTES;
-    buffer[0] = len & 0xFF;
-    buffer[1] = len>>8; //ESP is little endian, so the most significant bits come last
-    buffer[2] = opt_code; // Command
+    int offset = 0;
+    buffer[offset++] = len & 0xFF;
+    buffer[offset++] = len>>8; //ESP is little endian, so the most significant bits come last
+    buffer[offset++] = opt_code; // Command
 
     return len;// + CONTROL_BYTES;
 }
 
 int handle_help(const int sockfd){
+    (void)sockfd; //Remove compile warning
 
     for (int i = 0; i < NUM_OPTIONS; ++i) {
         printf("\t'%c': %s\n", options[i].opt_code, options[i].help_msg);
@@ -128,8 +130,12 @@ int handle_message(const int sockfd){
 
     // Just "strlen(buffer)" is undefined behaviour because the first bytes have not been set and might be '\0'
     uint16_t len = strlen(buffer + CONTROL_BYTES);
-    if(buffer[len-1]=='\n') len--;
     len = set_control_bytes(buffer, len, MESSAGE_OPT_CODE);
+    if(buffer[len-1]=='\n') buffer[len-1]='\0';
+
+    //For DEBUG
+    printf("Len: %d\nNew Message: %s\n", len, buffer + CONTROL_BYTES);
+    //---------
 
     // Send message
     send(sockfd, buffer, len, 0);
@@ -137,8 +143,8 @@ int handle_message(const int sockfd){
 
     // Receive response
     int bytes_read = read(sockfd, buffer, BUFFER_SIZE - 1);
-    buffer[bytes_read] = '\0';
     if(buffer[0] != ESP_RESP_OK){
+        buffer[bytes_read] = '\0';
         return RETURN_ESP_ERROR;
     }
 
@@ -146,6 +152,7 @@ int handle_message(const int sockfd){
 }
 
 int handle_termination(const int sockfd){
+    (void)sockfd; //Remove compile warning
 
     return RETURN_TERMINATE;
 }
@@ -160,13 +167,28 @@ int handle_status(const int sockfd){
 
     // Receive response
     int bytes_read = read(sockfd, buffer, BUFFER_SIZE - 1);
-    buffer[bytes_read] = '\0';
     if(buffer[0] != ESP_RESP_OK){
+        buffer[bytes_read] = '\0';
         return RETURN_ESP_ERROR;
     }
 
-    //TODO(Proccess response from ESP and print interval type, time interval, message, and destination address)
-    printf("TODO(Proccess response from ESP and print interval type, time interval, message, and destination address)\n");
+    int offset = 1; //Already read the response status byte
+
+    char type = buffer[offset++];
+    uint16_t time = buffer[offset++];
+    time += (buffer[offset++]<<8);
+
+    unsigned char dest_mac[MAC_ADDRESS_SIZE];
+    memcpy(dest_mac, buffer + offset, MAC_ADDRESS_SIZE);
+
+    char* msg = &buffer[offset+MAC_ADDRESS_SIZE];
+
+    printf("Time (ms): %u | Interval type: %c\n"
+            "Dest MAC: %02X:%02X:%02X:%02X:%02X:%02X\n"
+            "Message: %s\n",
+            time, type,
+            dest_mac[0], dest_mac[1], dest_mac[2], dest_mac[3], dest_mac[4], dest_mac[5],
+            msg);
 
     return RETURN_SUCCESS;
 }
@@ -213,8 +235,8 @@ int handle_time(const int sockfd){
 
     // Receive response
     int bytes_read = read(sockfd, buffer, BUFFER_SIZE - 1);
-    buffer[bytes_read] = '\0';
     if(buffer[0] != ESP_RESP_OK){
+        buffer[bytes_read] = '\0';
         return RETURN_ESP_ERROR;
     }
 
@@ -252,8 +274,8 @@ int handle_destination(const int sockfd){
 
     // Receive response
     int bytes_read = read(sockfd, buffer, BUFFER_SIZE - 1);
-    buffer[bytes_read] = '\0';
     if(buffer[0] != ESP_RESP_OK){
+        buffer[bytes_read] = '\0';
         return RETURN_ESP_ERROR;
     }
 
