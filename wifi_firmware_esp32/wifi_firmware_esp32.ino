@@ -40,6 +40,22 @@
 #define PRINTLN_VALUE(void) 
 #endif
 
+
+#define DEFAULT_BACKOFF_ALGORITHM new MILD_BACKOFF()
+/**
+ * content does not include size for frame control bits (ieeeGrame)
+*/
+#define DEFAULT_FRAME_CONTENT_SIZE 1000
+
+/*
+ * Array value declaration. Ensure array is big enough for MAC address
+*/
+#define DEFAULT_MAC_ADDRESS {0x4C, 0x11, 0xAE, 0x64, 0xD1, 0x8D}
+
+#define DEFAULT_TIME_INTERVAL_MODE TRF_GEN_GAUSS
+
+#define DEFAULT_TIME_INTERVAL 6000
+
 /**
  * multiple increase, linear decrease
 */
@@ -413,27 +429,29 @@ void setup() {
 
     delay(2000);
 
-    csma_control = new CSMA_CONTROL(&checkChannel, new MILD_BACKOFF());
+    csma_control = new CSMA_CONTROL(&checkChannel, DEFAULT_BACKOFF_ALGORITHM);
 
 
     //answer packet definition
     answer_packet.length = sizeof(ieeeFrame);
     memcpy(answerFrame->addr_src, myMacAddress, MAC_ADDRESS_SIZE);
 
-    //rts packet definition
-    uint16_t data_length = sizeof(ieeeFrame) + 1000;
+    
+    uint16_t data_length = sizeof(ieeeFrame) + DEFAULT_FRAME_CONTENT_SIZE;
     rts_packet.length = data_length; //has data_length to calculate duration
-    uint16_t rts_duration = durationCalculation(rts_packet);
+    uint16_t data_duration = durationCalculation(rts_packet);
+
+    //rts packet definition
     rts_packet.length = sizeof(ieeeFrame); //right length for rts
     memcpy(rtsFrame->addr_src, myMacAddress, MAC_ADDRESS_SIZE);
     PACKET_TO_RTS(rtsFrame);
     
     //4C:11:AE:64:D1:8D
-    uint8_t dstMacAddress[6] = {0x4C, 0x11, 0xAE, 0x64, 0xD1, 0x8D};
+    uint8_t dstMacAddress[6] = DEFAULT_MAC_ADDRESS;
     memcpy(rtsFrame->addr_dest, dstMacAddress, MAC_ADDRESS_SIZE);
 
-    trf_gen = new TRAFFIC_GEN(&sender, myMacAddress, dstMacAddress, rts_duration, data_length);
-    trf_gen->setTime(TRF_GEN_GAUSS, 6000);
+    trf_gen = new TRAFFIC_GEN(&sender, myMacAddress, dstMacAddress, data_duration, data_length);
+    trf_gen->setTime(DEFAULT_TIME_INTERVAL_MODE, DEFAULT_TIME_INTERVAL);
     
     
     xTaskCreatePinnedToCore(
