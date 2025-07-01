@@ -13,7 +13,7 @@ struct trafficGeneratorParameters{
   /**
    * flag to communicate if values ware actually given
   */
-  bool used;
+  bool used = false;
 
   uint8_t time_mode;
 
@@ -25,7 +25,7 @@ struct csmaControlParameters{
   /**
    * flag to communicate if values ware actually given
   */
-  bool used;
+  bool used = false;
 
 
   /*

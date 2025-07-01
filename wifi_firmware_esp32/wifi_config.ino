@@ -115,6 +115,20 @@ void wifi_handle_time(WiFiClient* client, uint8_t* buffer, uint16_t len){
 
     uint16_t time = ( ((uint16_t)buffer[1]) <<8) + (uint16_t)buffer[2];
 
+    macProtocolParameters time_parameter; 
+    time_parameter.traf_gen_params.used = true;
+
+    switch(type){
+        case 'c':
+            time_parameter.traf_gen_params.time_mode = TRF_GEN_CONST;
+            break;
+        case 'g':
+            time_parameter.traf_gen_params.time_mode = TRF_GEN_GAUSS;
+    }
+    time_parameter.traf_gen_params.waiting_time = time;
+
+    xQueueSend(protocolParametersQueueHandle, &time_parameter, portMAX_DELAY);
+
     if( time < 50 ){
         rsp[0] = ESP_RESP_ERROR;
         client->write( rsp, strlen(rsp) );

@@ -28,7 +28,7 @@
  *
  * If not defined code should not do prints
 */
-#define MONITOR_DEBUG_MODE //Does not need a value
+//#define MONITOR_DEBUG_MODE //Does not need a value
 
 #ifdef MONITOR_DEBUG_MODE
 #define PRINTLN(string) Serial.println(F(string))
@@ -334,6 +334,8 @@ void changeParametersTask(void* unusedParam){
       continue;
     }
 
+    Serial.println("Activated");
+
 #ifdef ANSWER_TASK_CHANGES_WITH_PARAMETERS
     radio.setIdleState(); // to avoid rx overflow
     PRINTLN("Set to idle state, avoiding answer task being activated");
@@ -361,6 +363,7 @@ void changeParametersTask(void* unusedParam){
 
 
     if(params->traf_gen_params.used){
+      Serial.println("Changing traffic time");
       trf_gen->setTime(params->traf_gen_params.time_mode, params->traf_gen_params.waiting_time);
     }
 
