@@ -27,7 +27,24 @@ TRAFFIC_GEN::TRAFFIC_GEN(void (* sendDataF)(CCPACKET), uint8_t my_addr[6], uint8
     this->packet.length = strlen((char *) trf_frame->payload) + sizeof(ieeeFrame);
     */
 
-   this->packet.length = data_length;
+   this->packet.length = data_length + sizeof(ieeeFrame);
+}
+
+TRAFFIC_GEN::TRAFFIC_GEN(void (* sendDataF)(CCPACKET), uint8_t my_addr[6], uint8_t destination_addr[6], uint16_t duration, uint16_t message_length, char* message){
+
+    this->running = false;
+    this->sendData = sendDataF;
+    
+    ieeeFrame * trf_frame = (ieeeFrame *) this->packet.data;
+    PACKET_TO_DATA(trf_frame);
+
+    memcpy(trf_frame->addr_src, my_addr, 6);
+    memcpy(trf_frame->addr_dest, destination_addr, 6);
+    trf_frame->duration = duration;
+
+    memcpy(trf_frame, message, message_length);
+
+   this->packet.length = message_length + sizeof(ieeeFrame);
 }
 
 bool TRAFFIC_GEN::init() {
@@ -84,4 +101,19 @@ bool TRAFFIC_GEN::setTime(uint8_t time_mode, uint16_t waiting_time){
     time_interval = waiting_time;
 
     return true;
+}
+
+
+void TRAFFIC_GEN::setDestAddress(uint8_t addr[MAC_ADDRESS_SIZE]){
+    ieeeFrame * trf_frame = (ieeeFrame *) this->packet.data;
+    memcpy(trf_frame->addr_dest, addr, MAC_ADDRESS_SIZE);
+}
+
+void TRAFFIC_GEN::setMessage(char* message, uint16_t message_length, uint16_t duration){
+    ieeeFrame * trf_frame = (ieeeFrame *) this->packet.data;
+
+    memcpy(trf_frame->payload, message, message_length);
+    trf_frame->duration = duration;
+
+   this->packet.length = message_length + sizeof(ieeeFrame);
 }

@@ -93,6 +93,21 @@ void wifi_handle_message(WiFiClient* client, uint8_t* buffer, uint16_t len){
     PRINT("New Message: ");
     PRINTLN(buffer);
 
+    macProtocolParameters message_parameter; 
+    message_parameter.traf_gen_data.used = true;
+
+    uint16_t message_size = (uint16_t) strlen((char*) buffer) + 1; // plus 1 for '\0' char
+    char* message = (char*) malloc(message_size);
+    message_parameter.traf_gen_data.message_length = message_size;
+    message_parameter.traf_gen_data.message = message;
+
+    memcpy(
+        message_parameter.traf_gen_data.message,
+        buffer,
+        message_size
+    );
+    
+    xQueueSend(protocolParametersQueueHandle, &message_parameter, portMAX_DELAY);
     //TODO(Set Message in traffic generator)
 
     rsp[0] = ESP_RESP_OK;
@@ -116,16 +131,16 @@ void wifi_handle_time(WiFiClient* client, uint8_t* buffer, uint16_t len){
     uint16_t time = ( ((uint16_t)buffer[1]) <<8) + (uint16_t)buffer[2];
 
     macProtocolParameters time_parameter; 
-    time_parameter.traf_gen_params.used = true;
+    time_parameter.traf_gen_time.used = true;
 
     switch(type){
         case 'c':
-            time_parameter.traf_gen_params.time_mode = TRF_GEN_CONST;
+            time_parameter.traf_gen_time.time_mode = TRF_GEN_CONST;
             break;
         case 'g':
-            time_parameter.traf_gen_params.time_mode = TRF_GEN_GAUSS;
+            time_parameter.traf_gen_time.time_mode = TRF_GEN_GAUSS;
     }
-    time_parameter.traf_gen_params.waiting_time = time;
+    time_parameter.traf_gen_time.waiting_time = time;
 
     xQueueSend(protocolParametersQueueHandle, &time_parameter, portMAX_DELAY);
 
@@ -138,8 +153,6 @@ void wifi_handle_time(WiFiClient* client, uint8_t* buffer, uint16_t len){
     PRINTLN_VALUE(len);
     PRINT("New Time: ");
     PRINTLN_VALUE(time);
-
-    //TODO(Set Time in traffic generator)
 
     rsp[0] = ESP_RESP_OK;
     client->write( rsp, 1 );
@@ -161,6 +174,13 @@ void wifi_handle_destination(WiFiClient* client, uint8_t* buffer, uint16_t len){
     #endif
 
     //TODO(Set Dest in traffic generator)
+
+    macProtocolParameters address_parameter; 
+    address_parameter.traf_gen_addr.used = true;
+
+    memcpy(address_parameter.traf_gen_addr.address, buffer, 6);
+
+    xQueueSend(protocolParametersQueueHandle, &address_parameter, portMAX_DELAY);  
 
     rsp[0] = ESP_RESP_OK;
     client->write( rsp, 1 );

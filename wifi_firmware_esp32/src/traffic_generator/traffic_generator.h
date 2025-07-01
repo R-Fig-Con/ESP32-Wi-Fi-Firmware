@@ -119,6 +119,25 @@ class TRAFFIC_GEN
     TRAFFIC_GEN(void (* sendDataF)(CCPACKET), uint8_t my_addr[MAC_ADDRESS_SIZE], uint8_t destination_addr[MAC_ADDRESS_SIZE], uint16_t duration, uint16_t data_length);
 
     /**
+     * Constructor
+     *
+     * Specifies the specific message desired
+     *
+     * @param 'sendDataF' is the function that will be used to send the packet.
+     *
+     * @param 'my_addr' is the mac address of the sender.
+     *
+     * @param 'destination_addr' will be the address of the receiver.
+     * 
+     * @param 'duration' calculated value for ieeeFrame.duration
+     * 
+     * @param 'message_length' length of message
+     * 
+     * @param 'message' pointer to message
+     */
+    TRAFFIC_GEN(void (* sendDataF)(CCPACKET), uint8_t my_addr[MAC_ADDRESS_SIZE], uint8_t destination_addr[MAC_ADDRESS_SIZE], uint16_t duration, uint16_t data_length, char* message);
+
+    /**
      * init
      *
      * Starts generating packets. Once this is called, the fields will not be changeble.
@@ -156,5 +175,23 @@ class TRAFFIC_GEN
     * returns false if time_mode is invalid; else true
     */
     bool setTime(uint8_t time_mode, uint16_t waiting_time);
+
+    /**
+     * setter for destination address
+     * 
+     * @param 'addr' new destination address
+     */
+    void setDestAddress(uint8_t addr[MAC_ADDRESS_SIZE]);
+
+    /**
+     * sets the new message contents. Specifies message content for testing purposes
+     * 
+     * @param 'message' new message
+     * 
+     * @param 'message_length' new message's length
+     * 
+     * @param 'duration' new calculated duration for ieeeFrame.duration
+     */
+    void setMessage(char* message, uint16_t message_length, uint16_t duration);
 
 };

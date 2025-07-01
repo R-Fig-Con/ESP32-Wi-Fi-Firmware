@@ -200,7 +200,7 @@ void receiveAndAnswerTask(void* unused_param){
       detachInterrupt(CC1101_GDO0);
 
       PACKET_TO_ACK(answerFrame);
-      answerFrame->duration = receiveFrame->duration - SIFS - radio.transmittionTime(packet_to_receive);
+      answerFrame->duration = 0; // no more to send after this, since fragmentation is not supported
       //Warning; This really counts on the packet sent not being interrupted, and therefore causing its failure
       //Creating prints in this step to check if the packet was sent or not should not cause any grand issues during testing;
       if(!radio.sendData(answer_packet)){
@@ -216,7 +216,7 @@ void receiveAndAnswerTask(void* unused_param){
       detachInterrupt(CC1101_GDO0);
 
       PACKET_TO_CTS(answerFrame);
-      answerFrame->duration = receiveFrame->duration - SIFS - radio.transmittionTime(packet_to_receive); //receive time could be saved, rts should always have same size and therefore time
+      answerFrame->duration = receiveFrame->duration - SIFS - radio.transmittionTime(packet_to_receive); 
       //Warning; This really counts on the packet sent not being interrupted, and therefore causing its failure
       //Creating prints in this step to check if the packet was sent or not should not cause any grand issues during testing;
       if(!radio.sendData(answer_packet)){
@@ -243,7 +243,7 @@ bool checkChannel(){
 
 /**
  * calculates amount of time needed at beggining of transmittion
- * Used for NAV
+ * Used for rts NAV
  * 
  * Assumes as the rest of the code data can be sent in one burst
  * 
@@ -251,6 +251,14 @@ bool checkChannel(){
  */
 uint16_t durationCalculation(CCPACKET data_packet){
   return radio.transmittionTime(data_packet) + (2 * radio.transmittionTime(answer_packet)) + 3 * SIFS; // 3 SIFS, ack and cts
+}
+
+
+/**
+ * calculation of duration filed for NAV found on the data
+*/
+uint16_t dataDurationCalculation(){
+  return radio.transmittionTime(answer_packet) + SIFS; // 1 SIFS + ack time
 }
 
 /**
@@ -334,8 +342,6 @@ void changeParametersTask(void* unusedParam){
       continue;
     }
 
-    Serial.println("Activated");
-
 #ifdef ANSWER_TASK_CHANGES_WITH_PARAMETERS
     radio.setIdleState(); // to avoid rx overflow
     PRINTLN("Set to idle state, avoiding answer task being activated");
@@ -362,9 +368,29 @@ void changeParametersTask(void* unusedParam){
     }
 
 
-    if(params->traf_gen_params.used){
-      Serial.println("Changing traffic time");
-      trf_gen->setTime(params->traf_gen_params.time_mode, params->traf_gen_params.waiting_time);
+    if(params->traf_gen_time.used){
+      trf_gen->setTime(params->traf_gen_time.time_mode, params->traf_gen_time.waiting_time);
+    }
+
+    if(params->traf_gen_addr.used){
+      Serial.println("Changing address");
+      trf_gen->setDestAddress(params->traf_gen_addr.address);
+    }
+
+    //TODO test with prints to check data contents
+    if(params->traf_gen_data.used){
+      Serial.println("Changing message");
+
+      CCPACKET temp; temp.length = params->traf_gen_data.message_length;
+      trf_gen->setMessage(
+        params->traf_gen_data.message, 
+        params->traf_gen_data.message_length,
+        dataDurationCalculation()
+      );
+
+      //TODO find better solution than malloc and free if possible
+      free(params->traf_gen_data.message);
+      
     }
 
 #ifdef ANSWER_TASK_CHANGES_WITH_PARAMETERS
@@ -439,7 +465,7 @@ void setup() {
     answer_packet.length = sizeof(ieeeFrame);
     memcpy(answerFrame->addr_src, myMacAddress, MAC_ADDRESS_SIZE);
 
-    
+    //rts nav duration calc
     uint16_t data_length = sizeof(ieeeFrame) + DEFAULT_FRAME_CONTENT_SIZE;
     rts_packet.length = data_length; //has data_length to calculate duration
     uint16_t data_duration = durationCalculation(rts_packet);
@@ -448,12 +474,13 @@ void setup() {
     rts_packet.length = sizeof(ieeeFrame); //right length for rts
     memcpy(rtsFrame->addr_src, myMacAddress, MAC_ADDRESS_SIZE);
     PACKET_TO_RTS(rtsFrame);
+    rtsFrame->duration = data_duration;
     
     //4C:11:AE:64:D1:8D
     uint8_t dstMacAddress[6] = DEFAULT_MAC_ADDRESS;
     memcpy(rtsFrame->addr_dest, dstMacAddress, MAC_ADDRESS_SIZE);
 
-    trf_gen = new TRAFFIC_GEN(&sender, myMacAddress, dstMacAddress, data_duration, data_length);
+    trf_gen = new TRAFFIC_GEN(&sender, myMacAddress, dstMacAddress, dataDurationCalculation(), data_length);
     trf_gen->setTime(DEFAULT_TIME_INTERVAL_MODE, DEFAULT_TIME_INTERVAL);
     
     

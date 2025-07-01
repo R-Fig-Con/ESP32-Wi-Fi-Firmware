@@ -9,7 +9,7 @@ enum BACKOFF_PROTOCOLS{
 /**
  * parameter collection for trafficGenerator
 */
-struct trafficGeneratorParameters{
+struct trafficGeneratorTimeParameters{
   /**
    * flag to communicate if values ware actually given
   */
@@ -19,6 +19,8 @@ struct trafficGeneratorParameters{
 
   uint16_t waiting_time;
 };
+
+
 
 
 struct csmaControlParameters{
@@ -36,12 +38,47 @@ struct csmaControlParameters{
 };
 
 
+struct trafficGeneratorAddressParameter{
+  /**
+   * flag to communicate if values ware actually given
+  */
+  bool used = false;
+
+  /**
+   * new address
+   */
+  uint8_t address[MAC_ADDRESS_SIZE];
+};
+
+struct trafficGeneratorDataParameter{
+  /**
+   * flag to communicate if values ware actually given
+  */
+  bool used = false;
+
+  /**
+   * new message
+   * 
+   * Warning: passing message as a pointer without specific length will require malloc and free
+   */
+  char* message = NULL;
+
+  /**
+   * length of message
+   */
+  uint16_t message_length;
+};
+
 
 /**
  * Contains all possible data used to reconfigure mac protocol
 */
 struct macProtocolParameters{
-  trafficGeneratorParameters traf_gen_params;
+  trafficGeneratorTimeParameters traf_gen_time;
+
+  trafficGeneratorAddressParameter traf_gen_addr;
+
+  trafficGeneratorDataParameter traf_gen_data;
 
   csmaControlParameters csma_contrl_params;
 };
