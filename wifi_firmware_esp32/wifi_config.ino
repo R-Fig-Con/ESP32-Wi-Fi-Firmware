@@ -15,6 +15,31 @@ void wifi_com_task(void* parameter) {
     vTaskDelete(NULL);
 }
 
+
+static struct{
+    BACKOFF_PROTOCOLS protocol = MILD;
+
+    /**
+     * assuming null means no specific message given
+     * 
+     * substituting value will probably entail freeing earlier and doing malloc for new
+    */
+    char* message = NULL;
+
+    uint16_t content_length = DEFAULT_FRAME_CONTENT_SIZE;
+
+    //sel mac probably to add in status, either by resquest function or saving it like here
+    //not used for now
+    uint8_t source_mac_address[MAC_ADDRESS_SIZE];
+
+    uint8_t destination_mac_address[MAC_ADDRESS_SIZE] = DEFAULT_MAC_ADDRESS;
+
+    uint8_t time_mode = DEFAULT_TIME_INTERVAL_MODE;
+
+    uint16_t waiting_time = DEFAULT_TIME_INTERVAL;
+
+} status;
+
 WIFI_CONFIG_RET wifi_com_start(WiFiServer* server, uint8_t my_mac[MAC_ADDRESS_SIZE]){
     
     IPAddress local_IP(AP_IP_ARR[0], AP_IP_ARR[1], AP_IP_ARR[2], AP_IP_ARR[3]);
@@ -58,13 +83,7 @@ void wifi_handle_status(WiFiClient* client, uint8_t* buffer, uint16_t len){
     (void)buffer;
     (void)len;
 
-    //TODO(Get current Message, Time, Interval Type, and Destination from traffic generator)
-    char msg[] = "current message";
-    uint16_t time = 300;
-    char type = 'c';
-    char macDst[MAC_ADDRESS_SIZE] = {0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC};
-    //------
-    int msg_len = strlen(msg);
+    char type = (status.time_mode == TRF_GEN_CONST) ? 'c': 'g';
 
     const int size = 2048;
     int offset = 0;
@@ -72,13 +91,23 @@ void wifi_handle_status(WiFiClient* client, uint8_t* buffer, uint16_t len){
     char rsp[size];
     rsp[offset++] = ESP_RESP_OK;
     rsp[offset++] = type;
-    rsp[offset++] = time & 0xFF;
-    rsp[offset++] = time >> 8;
-    memcpy(rsp+offset, macDst, MAC_ADDRESS_SIZE);
-    memcpy(rsp+offset+MAC_ADDRESS_SIZE, msg, msg_len);
+    rsp[offset++] = status.waiting_time & 0xFF;
+    rsp[offset++] = status.waiting_time >> 8;
+    memcpy(rsp+offset, status.destination_mac_address, MAC_ADDRESS_SIZE);
+
+    int msg_len;
+
+    if(status.message != NULL){
+        msg_len = status.content_length;
+        memcpy(rsp+offset+MAC_ADDRESS_SIZE, status.message, msg_len);
+    } else{
+        char without_message[] = "No message given";
+        msg_len = strlen(without_message) + 1;
+        memcpy(rsp+offset+MAC_ADDRESS_SIZE, without_message, msg_len);
+    }
     
     //Status byte + type + time + mac + msg
-    client->write( rsp, 1 + sizeof(type) + sizeof(time) + MAC_ADDRESS_SIZE + msg_len );
+    client->write( rsp, 1 + sizeof(type) + sizeof(status.waiting_time) + MAC_ADDRESS_SIZE + msg_len );
 }
 
 void wifi_handle_message(WiFiClient* client, uint8_t* buffer, uint16_t len){
@@ -106,9 +135,22 @@ void wifi_handle_message(WiFiClient* client, uint8_t* buffer, uint16_t len){
         buffer,
         message_size
     );
+
+    //free last
+    if(status.message != NULL){
+        free(status.message);
+    }
+
+    //state change
+    status.message = (char*) malloc(message_size);
+    status.content_length = message_size;
+    memcpy(
+        status.message,
+        buffer,
+        message_size
+    );
     
     xQueueSend(protocolParametersQueueHandle, &message_parameter, portMAX_DELAY);
-    //TODO(Set Message in traffic generator)
 
     rsp[0] = ESP_RESP_OK;
     client->write( rsp, 1 );
@@ -136,11 +178,14 @@ void wifi_handle_time(WiFiClient* client, uint8_t* buffer, uint16_t len){
     switch(type){
         case 'c':
             time_parameter.traf_gen_time.time_mode = TRF_GEN_CONST;
+            status.time_mode = TRF_GEN_CONST; // status update
             break;
         case 'g':
             time_parameter.traf_gen_time.time_mode = TRF_GEN_GAUSS;
+            status.time_mode = TRF_GEN_GAUSS; // status update
     }
     time_parameter.traf_gen_time.waiting_time = time;
+    status.waiting_time = time; // status update
 
     xQueueSend(protocolParametersQueueHandle, &time_parameter, portMAX_DELAY);
 
@@ -179,6 +224,7 @@ void wifi_handle_destination(WiFiClient* client, uint8_t* buffer, uint16_t len){
     address_parameter.traf_gen_addr.used = true;
 
     memcpy(address_parameter.traf_gen_addr.address, buffer, 6);
+    memcpy(status.destination_mac_address, buffer, 6);
 
     xQueueSend(protocolParametersQueueHandle, &address_parameter, portMAX_DELAY);  
 
