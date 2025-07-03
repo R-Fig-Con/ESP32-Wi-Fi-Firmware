@@ -14,12 +14,13 @@ char buffer[BUFFER_SIZE];
 #define RETURN_ESP_ERROR 3
 #define RETURN_APP_ERROR 4
 
-#define NUM_OPTIONS 6
+#define NUM_OPTIONS 7
 #define TERMINATE_OPT_CODE 'x'
 #define STATUS_OPT_CODE 's'
 #define MESSAGE_OPT_CODE 'm'
 #define TIME_OPT_CODE 't'
 #define DEST_OPT_CODE 'd'
+#define BACKOFF_PROTOCOL_OPT_CODE 'b'
 #define HELP_OPT_CODE 'h'
 
 struct OPTION{
@@ -38,6 +39,8 @@ int handle_time(const int sockfd);
 
 int handle_destination(const int sockfd);
 
+int handle_backoff(const int sockfd);
+
 int handle_help(const int sockfd);
 
 const struct OPTION options[NUM_OPTIONS] = {
@@ -46,7 +49,8 @@ const struct OPTION options[NUM_OPTIONS] = {
     { MESSAGE_OPT_CODE, "set message for the ESP to send", handle_message},
     { TIME_OPT_CODE, "set the time interval", handle_time},
     { DEST_OPT_CODE, "set destination mac address", handle_destination},
-    { HELP_OPT_CODE, "print this help message", handle_help}
+    { HELP_OPT_CODE, "print this help message", handle_help},
+    { BACKOFF_PROTOCOL_OPT_CODE, "set backoff protocol", handle_backoff}
 };
 
 // Calculate number of elements in the array

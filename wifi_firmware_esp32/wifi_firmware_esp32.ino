@@ -383,6 +383,11 @@ void changeParametersTask(void* unusedParam){
           csma_control = new CSMA_CONTROL(&checkChannel, new LINEAR_BACKOFF());
           PRINTLN("Changed csma_control to LINEAR_BACKOFF");
           break;
+        
+        case NON_EXISTANT:
+          csma_control = new CSMA_CONTROL(&checkChannel, new NO_BACKOFF());
+          PRINTLN("Changed csma_control to NO_BACKOFF");
+          break;
       }
     }
 
@@ -600,7 +605,6 @@ void sender(CCPACKET packet_to_send) {
     //sifs wait
     if(micros() - start_time >= SIFS){
       PRINTLN("WAIT FOR CTS FAILED");
-      Serial.println("NO cts received");
       retryCount += 1;
       automaticResponse = true;
       csma_control->ackReceived(false);
@@ -657,7 +661,6 @@ void sender(CCPACKET packet_to_send) {
   data.successes += 1;
 
   PRINTLN("Complete success");
-  Serial.println("Success");
 }
 
 /**

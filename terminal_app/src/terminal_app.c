@@ -284,3 +284,36 @@ int handle_destination(const int sockfd){
 
     return RETURN_SUCCESS;
 }
+
+int handle_backoff(const int sockfd){
+
+    char input_code;
+    while(1){
+        printf("Set (m)ild backoff; (l)inear; or (n)o backoff: ");
+        input_code = get_char_and_flush();
+
+        if(input_code == 'm' || input_code == 'l' || input_code == 'n'){
+            break;
+        }
+        printf("\t- Invalid option.\n");
+    }
+
+    uint16_t len = (uint16_t) sizeof(char);
+
+    len = set_control_bytes(buffer, len, BACKOFF_PROTOCOL_OPT_CODE);
+    
+    buffer[CONTROL_BYTES] = input_code;
+
+    // Send message
+    send(sockfd, buffer, len, 0);
+    printf("Backoff protocol config sent to ESP node.\n");
+
+    // Receive response
+    int bytes_read = read(sockfd, buffer, BUFFER_SIZE - 1);
+    if(buffer[0] != ESP_RESP_OK){
+        buffer[bytes_read] = '\0';
+        return RETURN_ESP_ERROR;
+    }
+
+    return RETURN_SUCCESS;
+}

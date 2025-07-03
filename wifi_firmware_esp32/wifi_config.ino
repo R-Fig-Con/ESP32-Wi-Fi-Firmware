@@ -221,8 +221,6 @@ void wifi_handle_destination(WiFiClient* client, uint8_t* buffer, uint16_t len){
     PRINTLN_VALUE(dst_mac);
     #endif
 
-    //TODO(Set Dest in traffic generator)
-
     macProtocolParameters address_parameter; 
     address_parameter.traf_gen_addr.used = true;
 
@@ -233,6 +231,46 @@ void wifi_handle_destination(WiFiClient* client, uint8_t* buffer, uint16_t len){
 
     rsp[0] = ESP_RESP_OK;
     client->write( rsp, 1 );
+}
+
+void wifi_handle_backoff(WiFiClient* client, uint8_t* buffer, uint16_t len){
+    //assuming buffer comes with single char
+    char rsp[] = ".Wrong length for backoff protocol";
+    if( len != sizeof(char) ){
+        rsp[0] = ESP_RESP_ERROR;
+        client->write( rsp, strlen(rsp) );
+    }
+
+    char protocol_char = buffer[0];
+
+    macProtocolParameters backoff_parameter; 
+    backoff_parameter.csma_contrl_params.used = true;
+
+    switch (protocol_char){
+        case 'm':
+            backoff_parameter.csma_contrl_params.backoff_protocol = MILD;
+            break;
+
+        case 'n':
+            backoff_parameter.csma_contrl_params.backoff_protocol = NON_EXISTANT;
+            break;
+
+        case 'l':
+            backoff_parameter.csma_contrl_params.backoff_protocol = LINEAR;
+            break;
+        
+        default:
+            char protocol_not_recognized_rsp[] = ".Protocol given not recognized";
+            rsp[0] = ESP_RESP_ERROR;
+            client->write(protocol_not_recognized_rsp, strlen(protocol_not_recognized_rsp));
+            return; //not needed from other examples?
+    }
+
+    xQueueSend(protocolParametersQueueHandle, &backoff_parameter, portMAX_DELAY);
+
+    rsp[0] = ESP_RESP_OK;
+    client->write( rsp, 1 );
+
 }
 
 void wifi_choose_handler(WiFiClient* client, uint8_t* buffer, uint16_t len){
