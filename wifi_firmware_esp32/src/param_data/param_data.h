@@ -3,7 +3,8 @@
 */
 enum BACKOFF_PROTOCOLS{
   MILD,
-  LINEAR
+  LINEAR,
+  NON_EXISTANT
 };
 
 /**

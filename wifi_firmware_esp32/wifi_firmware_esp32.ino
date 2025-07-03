@@ -41,7 +41,7 @@
 #endif
 
 
-#define DEFAULT_BACKOFF_ALGORITHM new MILD_BACKOFF()
+#define DEFAULT_BACKOFF_ALGORITHM new NO_BACKOFF()
 /**
  * content does not include size for frame control bits (ieeeGrame)
 */
@@ -52,7 +52,7 @@
 */
 #define DEFAULT_MAC_ADDRESS {0x4C, 0x11, 0xAE, 0x64, 0xD1, 0x8D}
 
-#define DEFAULT_TIME_INTERVAL_MODE TRF_GEN_GAUSS
+#define DEFAULT_TIME_INTERVAL_MODE TRF_GEN_CONST
 
 #define DEFAULT_TIME_INTERVAL 6000
 
@@ -112,6 +112,25 @@ class LINEAR_BACKOFF: public CONTENTION_BACKOFF{
       this->contentionWindow = 15;
       this->maximum = 1023;
      }
+};
+
+/**
+ * great to check collision when time in both traffics is the same and linear
+ * 
+ * Could be good to use in demonstration
+ */
+class NO_BACKOFF: public CONTENTION_BACKOFF{
+  void reduceContentionWindow(){}
+
+  
+  void increaseContentionWindow(){}
+
+  public:
+    NO_BACKOFF(){
+      this->minimum = 0;
+      this->contentionWindow = 0;
+      this->maximum = 0;
+    }
 };
 
 CC1101 radio;
@@ -373,7 +392,6 @@ void changeParametersTask(void* unusedParam){
     }
 
     if(params->traf_gen_addr.used){
-      Serial.println("Changing address");
       trf_gen->setDestAddress(params->traf_gen_addr.address);
     }
 
@@ -418,6 +436,7 @@ void setup() {
 
     delay(1000);
 
+  #ifndef MONITOR_DEBUG_MODE
     Serial.printf("My MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", 
       myMacAddress[0], 
       myMacAddress[1], 
@@ -425,6 +444,7 @@ void setup() {
       myMacAddress[3], 
       myMacAddress[4], 
       myMacAddress[5]);
+  #endif
 
     // Initialize the CC1101 radio
     radio.init();
@@ -436,14 +456,14 @@ void setup() {
     delay(1000);
 
     // Print some debug info
-    Serial.print(F("CC1101_PARTNUM "));
-    Serial.println(radio.readReg(CC1101_PARTNUM, CC1101_STATUS_REGISTER));
-    Serial.print(F("CC1101_VERSION "));
-    Serial.println(radio.readReg(CC1101_VERSION, CC1101_STATUS_REGISTER));
-    Serial.print(F("CC1101_MARCSTATE "));
-    Serial.println(radio.readReg(CC1101_MARCSTATE, CC1101_STATUS_REGISTER) & 0x1f);
+    PRINT("CC1101_PARTNUM ");
+    PRINTLN_VALUE(radio.readReg(CC1101_PARTNUM, CC1101_STATUS_REGISTER));
+    PRINT("CC1101_VERSION ");
+    PRINTLN_VALUE(radio.readReg(CC1101_VERSION, CC1101_STATUS_REGISTER));
+    PRINT("CC1101_MARCSTATE ");
+    PRINTLN_VALUE(radio.readReg(CC1101_MARCSTATE, CC1101_STATUS_REGISTER) & 0x1f);
 
-    Serial.println(F("CC1101 radio initialized."));    
+    PRINTLN_VALUE("CC1101 radio initialized.");    
     
     
     xTaskCreatePinnedToCore(
@@ -580,6 +600,7 @@ void sender(CCPACKET packet_to_send) {
     //sifs wait
     if(micros() - start_time >= SIFS){
       PRINTLN("WAIT FOR CTS FAILED");
+      Serial.println("NO cts received");
       retryCount += 1;
       automaticResponse = true;
       csma_control->ackReceived(false);
@@ -635,7 +656,8 @@ void sender(CCPACKET packet_to_send) {
   xSemaphoreGive(xSemaphore);
   data.successes += 1;
 
-  PRINTLN_VALUE("Complete success");
+  PRINTLN("Complete success");
+  Serial.println("Success");
 }
 
 /**
