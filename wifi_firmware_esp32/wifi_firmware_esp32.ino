@@ -145,8 +145,6 @@ TRAFFIC_GEN * trf_gen;
 
 CSMA_CONTROL * csma_control;
 
-mac_data data;
-
 /*
  * indicates to the code if packet should use automatic response or if is expecting data and code will linearly deal with it
 */
@@ -259,7 +257,6 @@ bool checkChannel(){
   return radio.cca();
 }
 
-
 /**
  * calculates amount of time needed at beggining of transmittion
  * Used for rts NAV
@@ -271,7 +268,6 @@ bool checkChannel(){
 uint16_t durationCalculation(CCPACKET data_packet){
   return radio.transmittionTime(data_packet) + (2 * radio.transmittionTime(answer_packet)) + 3 * SIFS; // 3 SIFS, ack and cts
 }
-
 
 /**
  * calculation of duration filed for NAV found on the data
@@ -287,46 +283,6 @@ uint16_t dataDurationCalculation(){
 CCPACKET rts_packet;
 ieeeFrame * rtsFrame = (ieeeFrame *) rts_packet.data;
 
-
-/**
-  TODO as test task to delete or comment
-
-  Test task. Should instead receive info, probably through a queue
-
-  Uses mutex, as doing something like substituting CSMA_CONTROL when in CSMA_CONTROL
-  function would probably cause big issues
-*/
-void coreZeroInitiator(void* unused_param){
-
-  bool flip_flop = true; // to decide change each time, test purposes
-
-  uint8_t params_buffer[sizeof(macProtocolParameters)];
-
-  macProtocolParameters *params = (macProtocolParameters*) params_buffer;
-  params->csma_contrl_params.used = true;
-
-  while(true){
-    PRINTLN("\nSecond core awake");
-
-    flip_flop = !flip_flop;
-
-    if(flip_flop){
-      params->csma_contrl_params.backoff_protocol = MILD;
-    } else{
-      params->csma_contrl_params.backoff_protocol = LINEAR;
-    }
-
-    xQueueSend(protocolParametersQueueHandle, (const void*) params_buffer, portMAX_DELAY);
-    
-    PRINTLN("Given values, does not wait for other task to change values\n");
-
-    delay(2000);
-    
-  }
-
-}
-
-
 /**
  * semaphore used either to gain access to radio mac protocol
  * wether to read or write
@@ -338,9 +294,7 @@ SemaphoreHandle_t xSemaphore = xSemaphoreCreateMutex();
  * 
  * Not responsible of collecting parameters, receives them
  *
- * TODO consider if parameter receive should happen either by  function params and task is recreated
- * each time or it should receive them from a queue
- *
+ * Task continuously receives parameters from queue
 */
 void changeParametersTask(void* unusedParam){
 
@@ -369,7 +323,7 @@ void changeParametersTask(void* unusedParam){
     xSemaphoreTake(xSemaphore, portMAX_DELAY);
     PRINTLN("\n\nCHANGE PARAMETERS GOT EXCLUSIVITY\n\n");
 
-    data.failures = 0; data.successes = 0; data.startTime = micros();
+    mac_data.retries = 0; mac_data.failures = 0; mac_data.successes = 0; mac_data.startTime = micros();
 
     if(params->csma_contrl_params.used){
       delete csma_control;
@@ -400,7 +354,6 @@ void changeParametersTask(void* unusedParam){
       trf_gen->setDestAddress(params->traf_gen_addr.address);
     }
 
-    //TODO test with prints to check data contents
     if(params->traf_gen_data.used){
       Serial.println("Changing message");
 
@@ -530,7 +483,7 @@ void setup() {
     );
     
 
-    data.startTime = micros();
+    mac_data.startTime = micros();
 
     attachInterrupt(CC1101_GDO0, messageReceived, RISING);
 
@@ -583,7 +536,7 @@ void sender(CCPACKET packet_to_send) {
   if(retryCount == 10){
     PRINTLN("GIVING UP after retry limit reached");
     xSemaphoreGive(xSemaphore);
-    data.failures += 1;
+    mac_data.failures += 1;
     return;
   }
   //PRINTLN_VALUE(radio.readStatusReg(CC1101_MARCSTATE));
@@ -605,7 +558,7 @@ void sender(CCPACKET packet_to_send) {
     //sifs wait
     if(micros() - start_time >= SIFS){
       PRINTLN("WAIT FOR CTS FAILED");
-      retryCount += 1;
+      retryCount += 1; mac_data.retries += 1;
       automaticResponse = true;
       csma_control->ackReceived(false);
       goto send;
@@ -616,7 +569,7 @@ void sender(CCPACKET packet_to_send) {
   //checks if is ok and is an ack ack
   if(receiver() && !PACKET_IS_CTS(receiveFrame)){
     PRINTLN("answer NOT a CTS");
-    retryCount += 1;
+    retryCount += 1; mac_data.retries += 1;
     csma_control->ackReceived(false);
     goto send;
     
@@ -635,7 +588,7 @@ void sender(CCPACKET packet_to_send) {
     //sifs wait
     if(micros() - start_time >= SIFS){
       PRINTLN("No ack");
-      retryCount += 1;
+      retryCount += 1; mac_data.retries += 1;
       automaticResponse = true;
       csma_control->ackReceived(false);
       goto send;
@@ -648,7 +601,7 @@ void sender(CCPACKET packet_to_send) {
   //checks if is ok and is an ack ack
   if(receiver() && !PACKET_IS_ACK(receiveFrame)){
     PRINTLN("answer is NOT an ACK");
-    retryCount += 1;
+    retryCount += 1; mac_data.retries += 1;
     csma_control->ackReceived(false);
     goto send;
     
@@ -658,7 +611,7 @@ void sender(CCPACKET packet_to_send) {
   csma_control->ackReceived(true);
 
   xSemaphoreGive(xSemaphore);
-  data.successes += 1;
+  mac_data.successes += 1;
 
   PRINTLN("Complete success");
 }

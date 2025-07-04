@@ -1,7 +1,7 @@
 /**
  * statistics fata related to running of mac protocol
  */
-struct mac_data
+struct
 {
     /**
      * log of start time for the mac protocol. 
@@ -16,8 +16,13 @@ struct mac_data
     volatile uint16_t successes = 0;
 
     /**
-     * amount of failures; counts only full fiving up
+     * amount of failures; counts only fully fiving up
      */
     volatile uint16_t failures = 0;
 
-};
+    /**
+     * number of times csma/ca needs to restart, either due to not receiving either cts or ack
+     */
+    volatile uint32_t retries = 0;
+
+} mac_data;
