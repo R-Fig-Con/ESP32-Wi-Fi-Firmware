@@ -1,7 +1,8 @@
 import serial
 
+name = input("Enter port name (COM3, COM4): ")
 ser = serial.Serial(
-    port='COM3',
+    port= name,
     baudrate=57600,
     parity=serial.PARITY_ODD,
     stopbits=serial.STOPBITS_TWO,
