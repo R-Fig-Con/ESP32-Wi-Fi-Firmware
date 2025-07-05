@@ -181,6 +181,22 @@ int handle_status(const int sockfd){
     uint16_t time = buffer[offset++];
     time += (buffer[offset++]<<8);
 
+    uint16_t success_count = buffer[offset++];
+    success_count += buffer[offset++] << 8;
+
+    uint16_t failure_count = buffer[offset++];
+    failure_count += buffer[offset++] << 8;
+
+    uint32_t retry_count = buffer[offset++];
+    retry_count += buffer[offset++] << 8;
+    retry_count += buffer[offset++] << 16;
+    retry_count += buffer[offset++] << 24;
+
+    uint32_t running_time = buffer[offset++];
+    running_time += buffer[offset++] << 8;
+    running_time += buffer[offset++] << 16;
+    running_time += buffer[offset++] << 24;
+
     unsigned char dest_mac[MAC_ADDRESS_SIZE];
     memcpy(dest_mac, buffer + offset, MAC_ADDRESS_SIZE);
 
@@ -192,6 +208,15 @@ int handle_status(const int sockfd){
             time, type,
             dest_mac[0], dest_mac[1], dest_mac[2], dest_mac[3], dest_mac[4], dest_mac[5],
             msg);
+
+    printf("Mac protocol; running time: %ul\n"
+            "Success count: %u\n"
+            "Failure count: %u\n"
+            "Retry count: %ul\n",
+            running_time,
+            success_count,
+            failure_count,
+            retry_count);
 
     return RETURN_SUCCESS;
 }

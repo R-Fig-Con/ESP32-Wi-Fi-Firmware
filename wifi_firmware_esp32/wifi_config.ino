@@ -96,6 +96,40 @@ void wifi_handle_status(WiFiClient* client, uint8_t* buffer, uint16_t len){
     rsp[offset++] = type;
     rsp[offset++] = status.waiting_time & 0xFF;
     rsp[offset++] = status.waiting_time >> 8;
+
+    //TODO verify if passing more than 1 byte values like this is correct
+    rsp[offset++] = mac_data.successes & 0xFF;
+    rsp[offset++] = mac_data.successes >> 8;
+    rsp[offset++] = mac_data.failures & 0xFF;
+    rsp[offset++] = mac_data.failures >> 8;
+
+    uint32_t saved_retries =  mac_data.retries;
+    
+    /*
+    uint8_t f = (uint8_t) (saved_retries & 0xFF);
+    uint8_t s = (uint8_t) ((saved_retries >> 8) & 0xFF ) ;
+    uint8_t t = (uint8_t) ((saved_retries >> 16) & 0xFF) ;
+    uint8_t fo= (uint8_t) ((saved_retries >> 24) & 0xFF) ;
+
+    Serial.printf("HELLO: %u; %u; %u; %; non cast value: %u\n", f, s, t, fo, saved_retries & 0xFF);
+    */
+
+    int retry_offset = offset;
+    rsp[offset++] = (uint8_t) (saved_retries & 0xFF);
+    rsp[offset++] = (uint8_t) ((saved_retries >> 8) & 0xFF );
+    rsp[offset++] = (uint8_t) ((saved_retries >> 16) & 0xFF);
+    rsp[offset++] = (uint8_t) ((saved_retries >> 24) & 0xFF);
+
+    //Serial.printf("Retries: %u. Buffer value: %x; %x; %x; %x\n", saved_retries, rsp[retry_offset], rsp[retry_offset + 1], rsp[retry_offset + 2], rsp[retry_offset + 3]);
+
+    uint32_t running_time = (uint32_t) micros() - mac_data.startTime; 
+    
+    rsp[offset++] = (uint8_t) (running_time & 0xFF);
+    rsp[offset++] = (uint8_t) ((running_time >> 8) & 0xFF);
+    rsp[offset++] = (uint8_t) ((running_time >> 16) & 0xFF);
+    rsp[offset++] = (uint8_t) ((running_time >> 24) & 0xFF);
+    
+
     memcpy(rsp+offset, status.destination_mac_address, MAC_ADDRESS_SIZE);
 
     int msg_len;
