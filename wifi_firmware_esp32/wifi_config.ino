@@ -199,12 +199,14 @@ void wifi_handle_time(WiFiClient* client, uint8_t* buffer, uint16_t len){
     if( type != 'c' && type != 'g' ){
         rsp_type[0] = ESP_RESP_ERROR;
         client->write( rsp_type, strlen(rsp_type) );
+        return;
     }
 
     char rsp[] = ".Invalid time";
     if( len-1 != 2 ){
         rsp[0] = ESP_RESP_ERROR;
         client->write( rsp, strlen(rsp) );
+        return;
     }
 
     uint16_t time = ( ((uint16_t)buffer[1]) <<8) + (uint16_t)buffer[2];
@@ -221,15 +223,17 @@ void wifi_handle_time(WiFiClient* client, uint8_t* buffer, uint16_t len){
             time_parameter.traf_gen_time.time_mode = TRF_GEN_GAUSS;
             status.time_mode = TRF_GEN_GAUSS; // status update
     }
-    time_parameter.traf_gen_time.waiting_time = time;
-    status.waiting_time = time; // status update
-
-    xQueueSend(protocolParametersQueueHandle, &time_parameter, portMAX_DELAY);
 
     if( time < 50 ){
         rsp[0] = ESP_RESP_ERROR;
         client->write( rsp, strlen(rsp) );
+        return;
     }
+
+    time_parameter.traf_gen_time.waiting_time = time;
+    status.waiting_time = time; // status update
+
+    xQueueSend(protocolParametersQueueHandle, &time_parameter, portMAX_DELAY);
     
     PRINT("Len: ");
     PRINTLN_VALUE(len);
@@ -258,8 +262,8 @@ void wifi_handle_destination(WiFiClient* client, uint8_t* buffer, uint16_t len){
     macProtocolParameters address_parameter; 
     address_parameter.traf_gen_addr.used = true;
 
-    memcpy(address_parameter.traf_gen_addr.address, buffer, 6);
-    memcpy(status.destination_mac_address, buffer, 6);
+    memcpy(address_parameter.traf_gen_addr.address, buffer, MAC_ADDRESS_SIZE);
+    memcpy(status.destination_mac_address, buffer, MAC_ADDRESS_SIZE);
 
     xQueueSend(protocolParametersQueueHandle, &address_parameter, portMAX_DELAY);  
 
@@ -295,9 +299,9 @@ void wifi_handle_backoff(WiFiClient* client, uint8_t* buffer, uint16_t len){
         
         default:
             char protocol_not_recognized_rsp[] = ".Protocol given not recognized";
-            rsp[0] = ESP_RESP_ERROR;
+            protocol_not_recognized_rsp[0] = ESP_RESP_ERROR;
             client->write(protocol_not_recognized_rsp, strlen(protocol_not_recognized_rsp));
-            return; //not needed from other examples?
+            return;
     }
 
     xQueueSend(protocolParametersQueueHandle, &backoff_parameter, portMAX_DELAY);

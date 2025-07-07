@@ -1,5 +1,5 @@
 /**
- * statistics fata related to running of mac protocol
+ * statistics data related to running of mac protocol
  */
 struct
 {
