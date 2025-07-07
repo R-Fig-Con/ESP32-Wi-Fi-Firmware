@@ -10,7 +10,7 @@ TRAFFIC_GEN::TRAFFIC_GEN(void (* sendDataF)(CCPACKET), uint8_t my_addr[6], uint8
     memcpy(trf_frame->addr_dest, destination_addr, 6);
     trf_frame->duration = duration;
 
-    /*
+    
     // Now, fill the remainder of the payload with some 
     // data (just to have something that is verificable on
     // the receiver end).
@@ -25,7 +25,7 @@ TRAFFIC_GEN::TRAFFIC_GEN(void (* sendDataF)(CCPACKET), uint8_t my_addr[6], uint8
     // because it is a string, plus the size of the frame.
     //  Frame also includes extra pointer, which is offset by \0 at the end of string.
     this->packet.length = strlen((char *) trf_frame->payload) + sizeof(ieeeFrame);
-    */
+    
 
    this->packet.length = data_length + sizeof(ieeeFrame);
 }
@@ -109,11 +109,11 @@ void TRAFFIC_GEN::setDestAddress(uint8_t addr[MAC_ADDRESS_SIZE]){
     memcpy(trf_frame->addr_dest, addr, MAC_ADDRESS_SIZE);
 }
 
-void TRAFFIC_GEN::setMessage(char* message, uint16_t message_length, uint16_t duration){
+void TRAFFIC_GEN::setMessage(char* message, uint16_t message_length/*, uint16_t duration*/){
     ieeeFrame * trf_frame = (ieeeFrame *) this->packet.data;
 
     memcpy(trf_frame->payload, message, message_length);
-    trf_frame->duration = duration;
+    //trf_frame->duration = duration;
 
-   this->packet.length = message_length + sizeof(ieeeFrame);
+    this->packet.length = message_length + sizeof(ieeeFrame);
 }

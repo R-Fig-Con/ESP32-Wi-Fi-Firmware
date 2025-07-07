@@ -20,7 +20,7 @@ static struct{
     /**
      * needs to be set the same as default by hand, since identifier is enum and default is class instance creation
      */
-    BACKOFF_PROTOCOLS protocol = NON_EXISTANT;
+    BACKOFF_PROTOCOLS protocol = MILD;
 
     /**
      * assuming null means no specific message given
@@ -104,15 +104,6 @@ void wifi_handle_status(WiFiClient* client, uint8_t* buffer, uint16_t len){
     rsp[offset++] = mac_data.failures >> 8;
 
     uint32_t saved_retries =  mac_data.retries;
-    
-    /*
-    uint8_t f = (uint8_t) (saved_retries & 0xFF);
-    uint8_t s = (uint8_t) ((saved_retries >> 8) & 0xFF ) ;
-    uint8_t t = (uint8_t) ((saved_retries >> 16) & 0xFF) ;
-    uint8_t fo= (uint8_t) ((saved_retries >> 24) & 0xFF) ;
-
-    Serial.printf("HELLO: %u; %u; %u; %; non cast value: %u\n", f, s, t, fo, saved_retries & 0xFF);
-    */
 
     int retry_offset = offset;
     rsp[offset++] = (uint8_t) (saved_retries & 0xFF);
@@ -128,7 +119,6 @@ void wifi_handle_status(WiFiClient* client, uint8_t* buffer, uint16_t len){
     rsp[offset++] = (uint8_t) ((running_time >> 8) & 0xFF);
     rsp[offset++] = (uint8_t) ((running_time >> 16) & 0xFF);
     rsp[offset++] = (uint8_t) ((running_time >> 24) & 0xFF);
-    
 
     memcpy(rsp+offset, status.destination_mac_address, MAC_ADDRESS_SIZE);
 
@@ -251,13 +241,8 @@ void wifi_handle_destination(WiFiClient* client, uint8_t* buffer, uint16_t len){
         client->write( rsp, strlen(rsp) );
     }
 
-    #ifdef MONITOR_DEBUG_MODE
-    char dst_mac[MAC_STR_LEN + 1];
-    sprintf(dst_mac, "%02X:%02X:%02X:%02X:%02X:%02X", 
-        buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5]);
     PRINT("New Dest: ");
-    PRINTLN_VALUE(dst_mac);
-    #endif
+    PRINTLN_MAC(buffer);
 
     macProtocolParameters address_parameter; 
     address_parameter.traf_gen_addr.used = true;

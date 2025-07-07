@@ -166,7 +166,7 @@ int handle_status(const int sockfd){
 
     // Send message
     send(sockfd, buffer, len, 0);
-    printf("Time config sent to ESP node.\n");
+    printf("Status request sent to ESP node.\n");
 
     // Receive response
     int bytes_read = read(sockfd, buffer, BUFFER_SIZE - 1);
@@ -182,10 +182,10 @@ int handle_status(const int sockfd){
     time += (buffer[offset++]<<8);
 
     uint16_t success_count = buffer[offset++];
-    success_count += buffer[offset++] << 8;
+    success_count += (buffer[offset++] << 8);
 
     uint16_t failure_count = buffer[offset++];
-    failure_count += buffer[offset++] << 8;
+    failure_count += (buffer[offset++] << 8);
 
     uint32_t retry_count = buffer[offset++];
     retry_count += buffer[offset++] << 8;
@@ -209,10 +209,10 @@ int handle_status(const int sockfd){
             dest_mac[0], dest_mac[1], dest_mac[2], dest_mac[3], dest_mac[4], dest_mac[5],
             msg);
 
-    printf("Mac protocol; running time: %ul\n"
+    printf("Mac protocol; running time: %u\n"
             "Success count: %u\n"
             "Failure count: %u\n"
-            "Retry count: %ul\n",
+            "Retry count: %u\n",
             running_time,
             success_count,
             failure_count,

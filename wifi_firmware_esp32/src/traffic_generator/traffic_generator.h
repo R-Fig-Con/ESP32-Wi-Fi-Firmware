@@ -189,9 +189,8 @@ class TRAFFIC_GEN
      * @param 'message' new message
      * 
      * @param 'message_length' new message's length
-     * 
-     * @param 'duration' new calculated duration for ieeeFrame.duration
+     *
      */
-    void setMessage(char* message, uint16_t message_length, uint16_t duration);
+    void setMessage(char* message, uint16_t message_length);
 
 };

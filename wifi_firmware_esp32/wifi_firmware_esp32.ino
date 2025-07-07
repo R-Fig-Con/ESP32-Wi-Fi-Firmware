@@ -28,20 +28,22 @@
  *
  * If not defined code should not do prints
 */
-//#define MONITOR_DEBUG_MODE //Does not need a value
+#define MONITOR_DEBUG_MODE //Does not need a value
 
 #ifdef MONITOR_DEBUG_MODE
 #define PRINTLN(string) Serial.println(F(string))
 #define PRINT(string) Serial.print(F(string))
 #define PRINTLN_VALUE(value) Serial.println(value)
+#define PRINTLN_MAC(value) Serial.printf("%02X:%02X:%02X:%02X:%02X:%02X\n", value[0], value[1], value[2], value[3], value[4], value[5])
 #else
 #define PRINTLN(void) 
 #define PRINT(void) 
-#define PRINTLN_VALUE(void) 
+#define PRINTLN_VALUE(void)
+#define PRINTLN_MAC(void) 
 #endif
 
 
-#define DEFAULT_BACKOFF_ALGORITHM new NO_BACKOFF()
+#define DEFAULT_BACKOFF_ALGORITHM new MILD_BACKOFF()
 /**
  * content does not include size for frame control bits (ieeeGrame)
 */
@@ -208,6 +210,10 @@ void receiveAndAnswerTask(void* unused_param){
       continue;
     }
 
+    PRINTLN("Receiving packet!");
+    PRINT("SRC: ");
+    PRINTLN_MAC(receiveFrame->addr_src);
+
     //Set destination address
     memcpy( answerFrame->addr_dest, receiveFrame->addr_src, MAC_ADDRESS_SIZE );
 
@@ -360,8 +366,7 @@ void changeParametersTask(void* unusedParam){
       CCPACKET temp; temp.length = params->traf_gen_data.message_length;
       trf_gen->setMessage(
         params->traf_gen_data.message, 
-        params->traf_gen_data.message_length,
-        dataDurationCalculation()
+        params->traf_gen_data.message_length
       );
 
       //TODO find better solution than malloc and free if possible
@@ -460,6 +465,9 @@ void setup() {
 
     trf_gen = new TRAFFIC_GEN(&sender, myMacAddress, dstMacAddress, dataDurationCalculation(), data_length);
     trf_gen->setTime(DEFAULT_TIME_INTERVAL_MODE, DEFAULT_TIME_INTERVAL);
+
+    //char def_msg[] = "Default Message";
+    //trf_gen->setMessage(def_msg, strlen(def_msg));
     
     
     xTaskCreatePinnedToCore(
