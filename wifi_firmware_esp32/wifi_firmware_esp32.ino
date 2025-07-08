@@ -183,7 +183,7 @@ void receiveAndAnswerTask(void* unused_param){
 
   while(true){
 
-    vTaskSuspend(receiveHandle);  //suspend self; done on activation and after each receive
+    vTaskSuspend(NULL);  //suspend self; done on activation and after each receive
 
     if(!receiver()){
       continue;
@@ -269,9 +269,11 @@ bool checkChannel(){
  * 
  * Assumes as the rest of the code data can be sent in one burst
  * 
- * @param data_packet data packet to be sent
+ * @param data_length length of content from data packet to be sent
  */
-uint16_t durationCalculation(CCPACKET data_packet){
+uint16_t durationCalculation(unsigned short data_length){
+  CCPACKET data_packet;
+  data_packet.length = sizeof(ieeeFrame) + data_length;
   return radio.transmittionTime(data_packet) + (2 * radio.transmittionTime(answer_packet)) + 3 * SIFS; // 3 SIFS, ack and cts
 }
 
@@ -363,7 +365,7 @@ void changeParametersTask(void* unusedParam){
     if(params->traf_gen_data.used){
       Serial.println("Changing message");
 
-      CCPACKET temp; temp.length = params->traf_gen_data.message_length;
+      rtsFrame->duration = durationCalculation(params->traf_gen_data.message_length);
       trf_gen->setMessage(
         params->traf_gen_data.message, 
         params->traf_gen_data.message_length
@@ -448,22 +450,17 @@ void setup() {
     answer_packet.length = sizeof(ieeeFrame);
     memcpy(answerFrame->addr_src, myMacAddress, MAC_ADDRESS_SIZE);
 
-    //rts nav duration calc
-    uint16_t data_length = sizeof(ieeeFrame) + DEFAULT_FRAME_CONTENT_SIZE;
-    rts_packet.length = data_length; //has data_length to calculate duration
-    uint16_t data_duration = durationCalculation(rts_packet);
-
     //rts packet definition
     rts_packet.length = sizeof(ieeeFrame); //right length for rts
     memcpy(rtsFrame->addr_src, myMacAddress, MAC_ADDRESS_SIZE);
     PACKET_TO_RTS(rtsFrame);
-    rtsFrame->duration = data_duration;
+    rtsFrame->duration = durationCalculation(DEFAULT_FRAME_CONTENT_SIZE);
     
     //4C:11:AE:64:D1:8D
     uint8_t dstMacAddress[6] = DEFAULT_MAC_ADDRESS;
     memcpy(rtsFrame->addr_dest, dstMacAddress, MAC_ADDRESS_SIZE);
 
-    trf_gen = new TRAFFIC_GEN(&sender, myMacAddress, dstMacAddress, dataDurationCalculation(), data_length);
+    trf_gen = new TRAFFIC_GEN(&sender, myMacAddress, dstMacAddress, dataDurationCalculation(), sizeof(ieeeFrame) + DEFAULT_FRAME_CONTENT_SIZE);
     trf_gen->setTime(DEFAULT_TIME_INTERVAL_MODE, DEFAULT_TIME_INTERVAL);
 
     //char def_msg[] = "Default Message";
