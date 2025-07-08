@@ -177,33 +177,27 @@ int handle_status(const int sockfd){
 
     int offset = 1; //Already read the response status byte
 
-    /**
-     * todo check other cases like this.
-     * 
-     * As written in commmit, reading a value that should be 200 here without
-     * uint8_t casting gets us something like 65000
-     */
     char type = buffer[offset++];
     uint16_t time = 0;
     //printf("buffer next: %u; buffer next next: %x\n", (uint8_t) buffer[offset], buffer[offset + 1]);
     time += (uint8_t) buffer[offset++];
-    time += (buffer[offset++]<<8);
+    time += (uint8_t) (buffer[offset++]<<8);
 
-    uint16_t success_count = buffer[offset++];
-    success_count += (buffer[offset++] << 8);
+    uint16_t success_count = (uint8_t) buffer[offset++];
+    success_count += (uint8_t) (buffer[offset++] << 8);
 
-    uint16_t failure_count = buffer[offset++];
-    failure_count += (buffer[offset++] << 8);
+    uint16_t failure_count = (uint8_t) buffer[offset++];
+    failure_count += (uint8_t) (buffer[offset++] << 8);
 
-    uint32_t retry_count = buffer[offset++];
-    retry_count += buffer[offset++] << 8;
-    retry_count += buffer[offset++] << 16;
-    retry_count += buffer[offset++] << 24;
+    uint32_t retry_count = (uint8_t) buffer[offset++];
+    retry_count += (uint8_t) buffer[offset++] << 8;
+    retry_count += (uint8_t) buffer[offset++] << 16;
+    retry_count += (uint8_t) buffer[offset++] << 24;
 
-    uint32_t running_time = buffer[offset++];
-    running_time += buffer[offset++] << 8;
-    running_time += buffer[offset++] << 16;
-    running_time += buffer[offset++] << 24;
+    uint32_t running_time = (uint8_t) buffer[offset++];
+    running_time += (uint8_t) buffer[offset++] << 8;
+    running_time += (uint8_t) buffer[offset++] << 16;
+    running_time += (uint8_t) buffer[offset++] << 24;
 
     unsigned char dest_mac[MAC_ADDRESS_SIZE];
     memcpy(dest_mac, buffer + offset, MAC_ADDRESS_SIZE);
