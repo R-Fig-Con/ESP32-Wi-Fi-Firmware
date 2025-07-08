@@ -177,8 +177,16 @@ int handle_status(const int sockfd){
 
     int offset = 1; //Already read the response status byte
 
+    /**
+     * todo check other cases like this.
+     * 
+     * As written in commmit, reading a value that should be 200 here without
+     * uint8_t casting gets us something like 65000
+     */
     char type = buffer[offset++];
-    uint16_t time = buffer[offset++];
+    uint16_t time = 0;
+    //printf("buffer next: %u; buffer next next: %x\n", (uint8_t) buffer[offset], buffer[offset + 1]);
+    time += (uint8_t) buffer[offset++];
     time += (buffer[offset++]<<8);
 
     uint16_t success_count = buffer[offset++];
