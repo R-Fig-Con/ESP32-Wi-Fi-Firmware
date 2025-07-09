@@ -181,23 +181,23 @@ int handle_status(const int sockfd){
     uint16_t time = 0;
     //printf("buffer next: %u; buffer next next: %x\n", (uint8_t) buffer[offset], buffer[offset + 1]);
     time += (uint8_t) buffer[offset++];
-    time += (uint8_t) (buffer[offset++]<<8);
+    time += ((uint8_t) buffer[offset++]) <<8;
 
     uint16_t success_count = (uint8_t) buffer[offset++];
-    success_count += (uint8_t) (buffer[offset++] << 8);
+    success_count += ((uint8_t) buffer[offset++]) << 8;
 
     uint16_t failure_count = (uint8_t) buffer[offset++];
-    failure_count += (uint8_t) (buffer[offset++] << 8);
+    failure_count += ((uint8_t) buffer[offset++]) << 8;
 
     uint32_t retry_count = (uint8_t) buffer[offset++];
-    retry_count += (uint8_t) buffer[offset++] << 8;
-    retry_count += (uint8_t) buffer[offset++] << 16;
-    retry_count += (uint8_t) buffer[offset++] << 24;
+    retry_count += ((uint8_t) buffer[offset++]) << 8;
+    retry_count += ((uint8_t) buffer[offset++]) << 16;
+    retry_count += ((uint8_t) buffer[offset++]) << 24;
 
     uint32_t running_time = (uint8_t) buffer[offset++];
-    running_time += (uint8_t) buffer[offset++] << 8;
-    running_time += (uint8_t) buffer[offset++] << 16;
-    running_time += (uint8_t) buffer[offset++] << 24;
+    running_time += ((uint8_t) buffer[offset++]) << 8;
+    running_time += ((uint8_t) buffer[offset++]) << 16;
+    running_time += ((uint8_t) buffer[offset++]) << 24;
 
     unsigned char dest_mac[MAC_ADDRESS_SIZE];
     memcpy(dest_mac, buffer + offset, MAC_ADDRESS_SIZE);

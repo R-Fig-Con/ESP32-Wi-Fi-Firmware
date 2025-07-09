@@ -100,8 +100,12 @@ void wifi_handle_status(WiFiClient* client, uint8_t* buffer, uint16_t len){
     //TODO verify if passing more than 1 byte values like this is correct
     rsp[offset++] = mac_data.successes & 0xFF;
     rsp[offset++] = mac_data.successes >> 8;
-    rsp[offset++] = mac_data.failures & 0xFF;
-    rsp[offset++] = mac_data.failures >> 8;
+
+    int failure_offset = offset;
+    uint16_t saved_failures = mac_data.failures;
+
+    rsp[offset++] = saved_failures & 0xFF;
+    rsp[offset++] = saved_failures >> 8;
 
     uint32_t saved_retries =  mac_data.retries;
 
@@ -122,19 +126,22 @@ void wifi_handle_status(WiFiClient* client, uint8_t* buffer, uint16_t len){
 
     memcpy(rsp+offset, status.destination_mac_address, MAC_ADDRESS_SIZE);
 
+    offset += MAC_ADDRESS_SIZE;
+
     int msg_len;
 
     if(status.message != NULL){
         msg_len = status.content_length;
-        memcpy(rsp+offset+MAC_ADDRESS_SIZE, status.message, msg_len);
+        memcpy(rsp+offset, status.message, msg_len);
     } else{
         char without_message[] = "No message given";
         msg_len = strlen(without_message) + 1;
-        memcpy(rsp+offset+MAC_ADDRESS_SIZE, without_message, msg_len);
+        memcpy(rsp+offset, without_message, msg_len);
     }
+
+    offset += msg_len;
     
-    //Status byte + type + time + mac + msg
-    client->write( rsp, 1 + sizeof(type) + sizeof(status.waiting_time) + MAC_ADDRESS_SIZE + msg_len );
+    client->write( rsp, 1 + offset );
 }
 
 void wifi_handle_message(WiFiClient* client, uint8_t* buffer, uint16_t len){
