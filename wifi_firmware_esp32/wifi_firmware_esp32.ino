@@ -43,7 +43,7 @@
 #endif
 
 
-#define DEFAULT_BACKOFF_ALGORITHM new MILD_BACKOFF()
+#define DEFAULT_BACKOFF_ALGORITHM new NO_BACKOFF()
 /**
  * content does not include size for frame control bits (ieeeGrame)
 */
@@ -54,9 +54,11 @@
 */
 #define DEFAULT_MAC_ADDRESS {0x4C, 0x11, 0xAE, 0x64, 0xD1, 0x8D}
 
-#define DEFAULT_TIME_INTERVAL_MODE TRF_GEN_CONST
+#define DEFAULT_TIME_INTERVAL_MODE TRF_GEN_GAUSS
 
-#define DEFAULT_TIME_INTERVAL 6000
+#define DEFAULT_TIME_INTERVAL 200
+
+bool on_check_channel = false;
 
 /**
  * multiple increase, linear decrease
@@ -173,6 +175,20 @@ CCPACKET answer_packet;
 ieeeFrame * answerFrame = (ieeeFrame *) answer_packet.data;
 
 /**
+ * Checks if destintation of message is for the node. Assumes read packet is packet_to_receive
+ * 
+ * Return true if dest is for the node, false oterwise
+ */
+bool destIsMe(){
+  for( int i = 0; i<MAC_ADDRESS_SIZE; i++ ){
+      if( receiveFrame->addr_dest[i] != myMacAddress[i] ){
+        return false;
+      }
+    }
+  return true;
+}
+
+/**
  * Task will handle any communication started by another party
  * 
  * Is able to answer either to rts or data packets
@@ -189,15 +205,7 @@ void receiveAndAnswerTask(void* unused_param){
       continue;
     }
 
-    bool destIsMe = true;
-    for( int i = 0; i<MAC_ADDRESS_SIZE; i++ ){
-      if( receiveFrame->addr_dest[i] != myMacAddress[i] ){
-        destIsMe = false;
-        break;
-      }
-    }
-
-    if( !destIsMe ){
+    if(!destIsMe()){
       uint16_t wait_time =  receiveFrame->duration;
       unsigned long wait_start = micros();
 
@@ -547,9 +555,6 @@ void sender(CCPACKET packet_to_send) {
   //PRINTLN_VALUE(radio.readStatusReg(CC1101_MARCSTATE));
   csma_control->waitForTurn();
 
-  //PRINTLN("OUT OF CSMA_WAIT");
-
-  //PRINTLN_VALUE(radio.readStatusReg(CC1101_MARCSTATE));
   ///*
   detachInterrupt(CC1101_GDO0);
   radio.sendData(rts_packet);
@@ -572,7 +577,7 @@ void sender(CCPACKET packet_to_send) {
   }
 
   //checks if is ok and is an ack ack
-  if(receiver() && !PACKET_IS_CTS(receiveFrame)){
+  if(receiver() && !PACKET_IS_CTS(receiveFrame) && destIsMe()){
     PRINTLN("answer NOT a CTS");
     retryCount += 1; mac_data.retries += 1;
     csma_control->ackReceived(false);
@@ -604,7 +609,7 @@ void sender(CCPACKET packet_to_send) {
   automaticResponse = true;
   
   //checks if is ok and is an ack ack
-  if(receiver() && !PACKET_IS_ACK(receiveFrame)){
+  if(receiver() && !PACKET_IS_ACK(receiveFrame) && destIsMe()){
     PRINTLN("answer is NOT an ACK");
     retryCount += 1; mac_data.retries += 1;
     csma_control->ackReceived(false);

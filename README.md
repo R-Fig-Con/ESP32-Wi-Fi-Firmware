@@ -29,9 +29,11 @@ with python's pyserial will suffice.
 
 #### Arduino-cli commands
 
-Copmilation: arduino-cli compile --fqbn esp32:esp32:esp32doit-devkit-v1 [path to wifi_firmware_esp32.ino]
+To be run on the base of this git repository
 
-Upload: arduino-cli upload -p [port name, ie: COM3] --fqbn esp32:esp32:esp32doit-devkit-v1 [path to wifi_firmware_esp32.ino]
+Copmilation: arduino-cli compile --fqbn esp32:esp32:esp32doit-devkit-v1 ./wifi_firmware_esp32
+
+Upload: arduino-cli upload -p [port name, ie: COM3] --fqbn esp32:esp32:esp32doit-devkit-v1 ./wifi_firmware_esp32
 
 ## Application
 

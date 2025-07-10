@@ -346,6 +346,8 @@ class CC1101
 
     int8_t cca_threshold;
 
+    portMUX_TYPE myMutex = portMUX_INITIALIZER_UNLOCKED;
+
     /**
      * writeBurstReg
      * 

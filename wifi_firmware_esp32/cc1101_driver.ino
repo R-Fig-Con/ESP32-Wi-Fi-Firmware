@@ -55,7 +55,18 @@
 #define wait_GDO0_low()  while(getGDO0state())
 // Wait until GDO2 line goes high
 #define wait_GDO2_high()  while(!getGDO2state())
-#define wait_GDO2_high_test()  while(!getGDO2state()){Serial.println(readStatusReg(CC1101_RXBYTES));}
+#define wait_GDO2_high_test()  {\
+  uint32_t s = micros();\
+  while(!getGDO2state()){\
+    if (micros() - s >= 400){\
+      byte rfbits = (uint8_t) readStatusReg(CC1101_RXBYTES);\
+      Serial.println(rfbits);s = micros();\
+      if(rfbits == 193){Serial.print("OVERFLOW; GDO2 config value: "); Serial.println(readConfigReg(CC1101_IOCFG2));}\
+    }\
+  }\
+}
+//      if(on_check_channel){Serial.println("STUCK ON CHECK CHANNEL");} else {Serial.println("STUCK ON CHECK DIFS");}\
+  
 // Wait until GDO0 line goes low
 #define wait_GDO2_low()  while(getGDO2state())
 
@@ -101,11 +112,13 @@ void CC1101::wakeUp(void)
  */
 void CC1101::writeReg(byte regAddr, byte value) 
 {
+  taskENTER_CRITICAL(&myMutex);
   cc1101_Select();                      // Select CC1101
   wait_Miso();                          // Wait until MISO goes low
   SPI.transfer(regAddr);                // Send register address
   SPI.transfer(value);                  // Send value
   cc1101_Deselect();                    // Deselect CC1101
+  taskEXIT_CRITICAL(&myMutex);
 }
 
 /**
@@ -147,6 +160,8 @@ void CC1101::cmdStrobe(byte cmd)
   cc1101_Deselect();                    // Deselect CC1101
 }
 
+
+
 /**
  * readReg
  * 
@@ -163,11 +178,15 @@ byte CC1101::readReg(byte regAddr, byte regType)
   byte addr, val;
 
   addr = regAddr | regType;
+  
+  taskENTER_CRITICAL(&myMutex);
   cc1101_Select();                      // Select CC1101
   wait_Miso();                          // Wait until MISO goes low
   SPI.transfer(addr);                   // Send register address
   val = SPI.transfer(0x00);             // Read result
   cc1101_Deselect();                    // Deselect CC1101
+
+  taskEXIT_CRITICAL(&myMutex);
 
   return val;
 }
@@ -541,6 +560,7 @@ unsigned short CC1101::receiveData(CCPACKET * packet)
 
   // Wait for enough bytes on the RX FIFO
   wait_GDO2_high();
+  //wait_GDO2_high_test();
   //Serial.println(F("AAAAAAAAAAAAA"));
   
   // Read the packet size
@@ -663,6 +683,8 @@ bool CC1101::cca(void)
       // processed by the MCU). We need to go back to 
       // the RX state so that valid RSSI measurements 
       // are available again.
+
+      Serial.println("\n\nON CCA IF SHOULD NOT HAPPEN \n\n");
       
       setIdleState();       // Enter IDLE state
       flushRxFifo();        // Flush Rx FIFO
