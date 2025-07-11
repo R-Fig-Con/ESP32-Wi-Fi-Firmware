@@ -8,8 +8,8 @@ CSMA_CONTROL::CSMA_CONTROL(bool (*isChannelFree)(), CONTENTION_BACKOFF* contenti
 
     unsigned long duration = end - start;
 
-    this->backoffRepetition = (uint8_t) (duration / BACKOFF_TIME_SLOT) + 1;
-    this->sifsRepetition = (uint8_t) (duration / SIFS) + 1;
+    this->backoffRepetition = (uint8_t) (BACKOFF_TIME_SLOT / duration) + 1;
+    this->sifsRepetition = (uint8_t) (SIFS / duration) + 1;
 
     this->backoffCount = this->contentionAlgorithm->getBackoff();
     

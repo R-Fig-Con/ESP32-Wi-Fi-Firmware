@@ -6,7 +6,7 @@ struct
     /**
      * log of start time for the mac protocol. 
      * Used to calculate for how low protocol is running on device
-     * Interpreted as microsseconds
+     * Interpreted as milliseconds
      */
     volatile unsigned long startTime = 0;
 

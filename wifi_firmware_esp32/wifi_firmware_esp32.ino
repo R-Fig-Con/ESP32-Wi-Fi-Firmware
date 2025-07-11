@@ -28,7 +28,7 @@
  *
  * If not defined code should not do prints
 */
-#define MONITOR_DEBUG_MODE //Does not need a value
+//#define MONITOR_DEBUG_MODE //Does not need a value
 
 #ifdef MONITOR_DEBUG_MODE
 #define PRINTLN(string) Serial.println(F(string))
@@ -43,7 +43,7 @@
 #endif
 
 
-#define DEFAULT_BACKOFF_ALGORITHM new NO_BACKOFF()
+#define DEFAULT_BACKOFF_ALGORITHM new LINEAR_BACKOFF()
 /**
  * content does not include size for frame control bits (ieeeGrame)
 */
@@ -339,7 +339,7 @@ void changeParametersTask(void* unusedParam){
     xSemaphoreTake(xSemaphore, portMAX_DELAY);
     PRINTLN("\n\nCHANGE PARAMETERS GOT EXCLUSIVITY\n\n");
 
-    mac_data.retries = 0; mac_data.failures = 0; mac_data.successes = 0; mac_data.startTime = micros();
+    mac_data.retries = 0; mac_data.failures = 0; mac_data.successes = 0; mac_data.startTime = millis();
 
     if(params->csma_contrl_params.used){
       delete csma_control;
@@ -496,7 +496,7 @@ void setup() {
     );
     
 
-    mac_data.startTime = micros();
+    mac_data.startTime = millis();
 
     attachInterrupt(CC1101_GDO0, messageReceived, RISING);
 

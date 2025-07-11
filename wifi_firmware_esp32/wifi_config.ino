@@ -117,7 +117,7 @@ void wifi_handle_status(WiFiClient* client, uint8_t* buffer, uint16_t len){
 
     //Serial.printf("Retries: %u. Buffer value: %x; %x; %x; %x\n", saved_retries, rsp[retry_offset], rsp[retry_offset + 1], rsp[retry_offset + 2], rsp[retry_offset + 3]);
 
-    uint32_t running_time = (uint32_t) micros() - mac_data.startTime; 
+    uint32_t running_time = (uint32_t) millis() - mac_data.startTime; 
     
     rsp[offset++] = (uint8_t) (running_time & 0xFF);
     rsp[offset++] = (uint8_t) ((running_time >> 8) & 0xFF);

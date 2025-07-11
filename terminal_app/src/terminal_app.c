@@ -211,7 +211,7 @@ int handle_status(const int sockfd){
             dest_mac[0], dest_mac[1], dest_mac[2], dest_mac[3], dest_mac[4], dest_mac[5],
             msg);
 
-    printf("Mac protocol; running time: %u\n"
+    printf("Mac protocol; running time (milliseconds): %u\n"
             "Success count: %u\n"
             "Failure count: %u\n"
             "Retry count: %u\n",
