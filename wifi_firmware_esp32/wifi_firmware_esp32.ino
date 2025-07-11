@@ -28,7 +28,7 @@
  *
  * If not defined code should not do prints
 */
-//#define MONITOR_DEBUG_MODE //Does not need a value
+#define MONITOR_DEBUG_MODE //Does not need a value
 
 #ifdef MONITOR_DEBUG_MODE
 #define PRINTLN(string) Serial.println(F(string))
@@ -43,7 +43,7 @@
 #endif
 
 
-#define DEFAULT_BACKOFF_ALGORITHM new LINEAR_BACKOFF()
+#define DEFAULT_BACKOFF_ALGORITHM new NO_BACKOFF()
 /**
  * content does not include size for frame control bits (ieeeGrame)
 */
@@ -114,7 +114,25 @@ class LINEAR_BACKOFF: public CONTENTION_BACKOFF{
      LINEAR_BACKOFF(){
       this->minimum = 15;
       this->contentionWindow = 15;
-      this->maximum = 1023;
+      this->maximum = 1027;
+     }
+};
+
+
+/**
+ * Constantly on value 15
+ */
+class CONSTANT_BACKOFF: public CONTENTION_BACKOFF{
+  void reduceContentionWindow(){}
+
+  
+  void increaseContentionWindow(){}
+
+  public:
+     CONSTANT_BACKOFF(){
+      this->minimum = 15;
+      this->contentionWindow = 15;
+      this->maximum = 15;
      }
 };
 
@@ -204,6 +222,9 @@ void receiveAndAnswerTask(void* unused_param){
     if(!receiver()){
       continue;
     }
+    
+    PRINT("DST: ");
+    PRINTLN_MAC(receiveFrame->addr_dest);
 
     if(!destIsMe()){
       uint16_t wait_time =  receiveFrame->duration;
@@ -217,10 +238,6 @@ void receiveAndAnswerTask(void* unused_param){
       
       continue;
     }
-
-    PRINTLN("Receiving packet!");
-    PRINT("SRC: ");
-    PRINTLN_MAC(receiveFrame->addr_src);
 
     //Set destination address
     memcpy( answerFrame->addr_dest, receiveFrame->addr_src, MAC_ADDRESS_SIZE );
@@ -367,7 +384,9 @@ void changeParametersTask(void* unusedParam){
     }
 
     if(params->traf_gen_addr.used){
+      PRINT("CHANGE PARAMS TASK NEW DEST MAC: "); PRINTLN_MAC(params->traf_gen_addr.address);
       trf_gen->setDestAddress(params->traf_gen_addr.address);
+      memcpy(rtsFrame->addr_dest, params->traf_gen_addr.address, MAC_ADDRESS_SIZE);
     }
 
     if(params->traf_gen_data.used){
@@ -511,7 +530,7 @@ void generatorTask(void* unusedParam){
 }
 
 void loop(){
-    
+  
     if(!trf_gen->isRunning()){
         PRINT("Initiating traffic..., loop has priority "); 
         PRINTLN_VALUE(uxTaskPriorityGet(NULL));
@@ -525,7 +544,7 @@ void loop(){
           1          // Core 1
         );
     }
-
+    
 }
 
 /**

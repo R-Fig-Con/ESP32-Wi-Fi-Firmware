@@ -683,8 +683,6 @@ bool CC1101::cca(void)
       // processed by the MCU). We need to go back to 
       // the RX state so that valid RSSI measurements 
       // are available again.
-
-      Serial.println("\n\nON CCA IF SHOULD NOT HAPPEN \n\n");
       
       setIdleState();       // Enter IDLE state
       flushRxFifo();        // Flush Rx FIFO
