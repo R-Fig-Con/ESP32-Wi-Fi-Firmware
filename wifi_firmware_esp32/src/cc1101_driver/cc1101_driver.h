@@ -263,7 +263,7 @@ enum RFSTATE
 #define CC1101_DEFVAL_DEVIATN    0x35        // Modem Deviation Setting
 #define CC1101_DEFVAL_MCSM2      0x07        // Main Radio Control State Machine Configuration
 
-#define CC1101_DEFVAL_MCSM1      0x00        // Main Radio Control State Machine Configuration; CCA_MODE at 1, cca assert on below rssi threshold
+#define CC1101_DEFVAL_MCSM1      0x00        // Main Radio Control State Machine Configuration
 #define CC1101_DEFVAL_MCSM0      0x18        // Main Radio Control State Machine Configuration
 #define CC1101_DEFVAL_FOCCFG     0x16        // Frequency Offset Compensation Configuration
 #define CC1101_DEFVAL_BSCFG      0x6C        // Bit Synchronization Configuration
