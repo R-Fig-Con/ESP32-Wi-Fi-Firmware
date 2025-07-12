@@ -58,7 +58,7 @@ This terminal based application allows for the configuration of the individual E
 
 ### Connect to the ESP
 
-As the ESPs are set up as access points, you must first connect to the ESP you wish to configure using throuh your machines network manager.
+As the ESPs are set up as access points, you must first connect to the ESP you wish to configure through your machine's network manager.
 
 - The SSID will start with `ESP32-` and be followed by the MAC address of the ESP.
 
