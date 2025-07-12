@@ -6,7 +6,29 @@ By:
 
 # Tools Setup
 
-## Esp-32 code
+## Esp-32 
+
+### Esp to CC1101 Connection
+
+The table below shows the wire connection to be done between the radio and the micro-controller.
+Some changes such as the GDOx pin connection on the Esp side may be possible, if the code is changed to
+reflect them
+
+
+| CC1101 pin number | CC1101 pin Name | Esp pin name |
+|:------------------|:---------------:|-------------:|
+| 1                 |       GND       |          GND |
+| 2                 |       VCC       |          3V3 |
+| 3                 |      GDO0       |           D4 |
+| 4                 |       CSN       |           D5 |
+| 5                 |       SCK       |          D18 |
+| 6                 |      MOSI       |          D23 |
+| 7                 |      MISO       |          D19 |
+| 8                 |      GDO2       |           D2 |
+
+### Esp-32 code
+
+Code does not require any changes. Depending on updates it may require variable changes to chosen network's name and password
 
 ### Arduino IDE 2.0 Tool
 
