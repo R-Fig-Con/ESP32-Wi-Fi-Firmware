@@ -22,15 +22,17 @@ Some changes such as the GDOx pin connection on the ESP side may be possible, if
 
 Steps to run this project:
 
-- Clone this repo into your machine
-- Install Arduino IDE 2.0
-- In the IDE, install ["esp32" by Espressif Systems](https://github.com/espressif/arduino-esp32) in Boards Manager
-- Open the `wifi_firmware_esp32` folder from project in the IDE
-- Connect the ESP32 MCU to your machine
-- Select the correct board (DOIT ESP32 DEVKIT V1) and the port where the MCU is connected
-- Press upload
+1. Clone this repo into your machine
+2. Install Arduino IDE 2.0
+3. In the IDE, install ["esp32" by Espressif Systems](https://github.com/espressif/arduino-esp32) in Boards Manager
+4. Open the `wifi_firmware_esp32` folder from project in the IDE
+5. Connect the ESP32 to your machine
+6. At the top of the IDE:
+- Select the correct board (DOIT ESP32 DEVKIT V1)
+- Select the port where the ESP is connected
+7. Press upload
 
-To view debug out put, you must uncomment line #31 in the file `wifi_firmware_esp32.ino`, and then in the IDE go into "Tools" and select "Serial Monitor". 
+To view debug output, you must uncomment line #31 in the file `wifi_firmware_esp32.ino`, and then in the IDE go into **Tools >  Serial Monitor**. 
 
 ### Arduino-cli tool
 
@@ -52,7 +54,7 @@ Upload: arduino-cli upload -p [port name, ie: COM3] --fqbn esp32:esp32:esp32doit
 
 ## Application
 
-This terminal based application allows for the configuration of the individual ESP MCUs. It was built and tested on a Linux environment.
+This terminal based application allows for the configuration of the individual ESPs. It was built and tested on a Linux environment.
 
 ### Connect to the ESP
 
