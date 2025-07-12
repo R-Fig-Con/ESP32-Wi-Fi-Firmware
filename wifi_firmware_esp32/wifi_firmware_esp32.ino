@@ -28,7 +28,7 @@
  *
  * If not defined code should not do prints
 */
-#define MONITOR_DEBUG_MODE //Does not need a value
+//#define MONITOR_DEBUG_MODE //Does not need a value
 
 #ifdef MONITOR_DEBUG_MODE
 #define PRINTLN(string) Serial.println(F(string))
@@ -43,7 +43,7 @@
 #endif
 
 
-#define DEFAULT_BACKOFF_ALGORITHM new NO_BACKOFF()
+#define DEFAULT_BACKOFF_ALGORITHM MILD
 /**
  * content does not include size for frame control bits (ieeeGrame)
 */
@@ -57,8 +57,6 @@
 #define DEFAULT_TIME_INTERVAL_MODE TRF_GEN_GAUSS
 
 #define DEFAULT_TIME_INTERVAL 200
-
-bool on_check_channel = false;
 
 /**
  * multiple increase, linear decrease
@@ -322,6 +320,19 @@ ieeeFrame * rtsFrame = (ieeeFrame *) rts_packet.data;
 */
 SemaphoreHandle_t xSemaphore = xSemaphoreCreateMutex();
 
+CONTENTION_BACKOFF* getBackoffProtocol(BACKOFF_PROTOCOLS protocol_enum){
+  switch(protocol_enum){
+    case MILD:
+      return new MILD_BACKOFF();
+    case LINEAR:
+      return new LINEAR_BACKOFF();
+    case NON_EXISTANT:
+      return new NO_BACKOFF();
+    case CONSTANT:
+      return new CONSTANT_BACKOFF();
+  }
+}
+
 /**
  * Task to change parameters of protocol, running on the same core to ensure cache is correct
  * 
@@ -360,22 +371,7 @@ void changeParametersTask(void* unusedParam){
 
     if(params->csma_contrl_params.used){
       delete csma_control;
-      switch(params->csma_contrl_params.backoff_protocol){
-        case MILD:
-          csma_control = new CSMA_CONTROL(&checkChannel, new MILD_BACKOFF());
-          PRINTLN("Changed csma_control to MILD_BACKOFF");
-          break;
-
-        case LINEAR:
-          csma_control = new CSMA_CONTROL(&checkChannel, new LINEAR_BACKOFF());
-          PRINTLN("Changed csma_control to LINEAR_BACKOFF");
-          break;
-        
-        case NON_EXISTANT:
-          csma_control = new CSMA_CONTROL(&checkChannel, new NO_BACKOFF());
-          PRINTLN("Changed csma_control to NO_BACKOFF");
-          break;
-      }
+      csma_control = new CSMA_CONTROL(&checkChannel, getBackoffProtocol(params->csma_contrl_params.backoff_protocol));
     }
 
 
@@ -470,8 +466,7 @@ void setup() {
 
     delay(2000);
 
-    csma_control = new CSMA_CONTROL(&checkChannel, DEFAULT_BACKOFF_ALGORITHM);
-
+    csma_control = new CSMA_CONTROL(&checkChannel, getBackoffProtocol(DEFAULT_BACKOFF_ALGORITHM));
 
     //answer packet definition
     answer_packet.length = sizeof(ieeeFrame);

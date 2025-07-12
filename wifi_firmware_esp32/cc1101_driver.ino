@@ -65,7 +65,6 @@
     }\
   }\
 }
-//      if(on_check_channel){Serial.println("STUCK ON CHECK CHANNEL");} else {Serial.println("STUCK ON CHECK DIFS");}\
   
 // Wait until GDO0 line goes low
 #define wait_GDO2_low()  while(getGDO2state())
@@ -683,6 +682,8 @@ bool CC1101::cca(void)
       // processed by the MCU). We need to go back to 
       // the RX state so that valid RSSI measurements 
       // are available again.
+
+      Serial.println("ON CCA IF SHOULD NOT HAPPEN");
       
       setIdleState();       // Enter IDLE state
       flushRxFifo();        // Flush Rx FIFO

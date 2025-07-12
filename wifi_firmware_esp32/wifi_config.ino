@@ -20,7 +20,7 @@ static struct{
     /**
      * needs to be set the same as default by hand, since identifier is enum and default is class instance creation
      */
-    BACKOFF_PROTOCOLS protocol = MILD;
+    BACKOFF_PROTOCOLS protocol = DEFAULT_BACKOFF_ALGORITHM;
 
     /**
      * assuming null means no specific message given
