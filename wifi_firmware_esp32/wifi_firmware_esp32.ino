@@ -224,19 +224,6 @@ void receiveAndAnswerTask(void* unused_param){
     PRINT("DST: ");
     PRINTLN_MAC(receiveFrame->addr_dest);
 
-    if(!destIsMe()){
-      uint16_t wait_time =  receiveFrame->duration;
-      unsigned long wait_start = micros();
-
-      radio.setIdleState();
-
-      while (micros() - wait_start <= wait_time);
-
-      radio.setRxState();
-      
-      continue;
-    }
-
     //Set destination address
     memcpy( answerFrame->addr_dest, receiveFrame->addr_src, MAC_ADDRESS_SIZE );
 
@@ -591,7 +578,7 @@ void sender(CCPACKET packet_to_send) {
   }
 
   //checks if is ok and is an ack ack
-  if(receiver() && !PACKET_IS_CTS(receiveFrame) && destIsMe()){
+  if(receiver() && !PACKET_IS_CTS(receiveFrame)){
     PRINTLN("answer NOT a CTS");
     retryCount += 1; mac_data.retries += 1;
     csma_control->ackReceived(false);
@@ -623,7 +610,7 @@ void sender(CCPACKET packet_to_send) {
   automaticResponse = true;
   
   //checks if is ok and is an ack ack
-  if(receiver() && !PACKET_IS_ACK(receiveFrame) && destIsMe()){
+  if(receiver() && !PACKET_IS_ACK(receiveFrame)){
     PRINTLN("answer is NOT an ACK");
     retryCount += 1; mac_data.retries += 1;
     csma_control->ackReceived(false);
@@ -641,8 +628,8 @@ void sender(CCPACKET packet_to_send) {
 }
 
 /**
- * Directly affects 'packet_to_receive' global var
- * returns CCPACKET.crc_ok
+ * Directly affects 'packet_to_receive' global var, implements NAV
+ * returns true if crc is ok and dest is self else returns false and waits nav if needed
  */
 bool receiver() {
 
@@ -654,6 +641,20 @@ bool receiver() {
   
   //only necessary if is handled by traffic task; probably shoul be placed somewhere else; TODO
   packetWaiting = false;
+
+  if(!destIsMe()){
+    uint16_t wait_time =  receiveFrame->duration;
+    unsigned long wait_start = micros();
+
+    radio.setIdleState();
+
+    while (micros() - wait_start <= wait_time);
+
+    radio.setRxState();
+
+    return false;
+  }
+
   attachInterrupt(CC1101_GDO0, messageReceived, RISING);
 
   return packet_to_receive.crc_ok;
