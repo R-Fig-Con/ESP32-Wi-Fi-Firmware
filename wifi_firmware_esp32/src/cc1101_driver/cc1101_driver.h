@@ -316,9 +316,9 @@ enum RFSTATE
 #define setMonitorRxFifo()        writeReg(CC1101_IOCFG2, 0x01)
 
 // Enable monitoring the CCA state through GDO2
-//#define setMonitorCCA()           writeReg(CC1101_IOCFG2, 0x0E)
+#define setMonitorCCA()           writeReg(CC1101_IOCFG2, 0x0E)
 
-#define setMonitorCCA()           writeReg(CC1101_IOCFG2, 0x09) //variation to experiment
+//#define setMonitorCCA()           writeReg(CC1101_IOCFG2, 0x09) //variation to experiment
 
 
 // Disable address check; keeps rssi, lqi and crc_ok bits

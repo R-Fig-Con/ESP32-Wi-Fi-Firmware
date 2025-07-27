@@ -235,7 +235,9 @@ void CC1101::reset(void)
 
   setCCregs();                          // Reconfigure CC1101
 
-  //setMonitorCCA();
+  #ifdef CCA_FROM_GDO2_PIN
+  setMonitorCCA();
+  #endif
 }
 
 /**
@@ -506,6 +508,10 @@ bool CC1101::sendData(CCPACKET packet)
       
         // Enter back into RX state
         setRxState();
+
+        #ifdef CCA_FROM_GDO2_PIN
+        setMonitorCCA();
+        #endif
         
         return false;
       }
@@ -534,7 +540,10 @@ bool CC1101::sendData(CCPACKET packet)
 
   // Enter back into RX state
   setRxState();
-  //setMonitorCCA();
+
+  #ifdef CCA_FROM_GDO2_PIN
+  setMonitorCCA();
+  #endif
 
   return true;
 }
@@ -593,6 +602,11 @@ unsigned short CC1101::receiveData(CCPACKET * packet)
         
         // Back to RX state
         setRxState();
+        
+        #ifdef CCA_FROM_GDO2_PIN
+        setMonitorCCA();
+        #endif
+
         return 0;
       }
     }
@@ -618,6 +632,11 @@ unsigned short CC1101::receiveData(CCPACKET * packet)
       
       // Back to RX state
       setRxState();
+
+      #ifdef CCA_FROM_GDO2_PIN
+      setMonitorCCA();
+      #endif
+
       return 0;
     }
     packet->data[packet->length - remainingBytes] = readConfigReg(CC1101_RXFIFO);
@@ -642,6 +661,10 @@ unsigned short CC1101::receiveData(CCPACKET * packet)
   
   // Back to RX state
   setRxState();
+
+  #ifdef CCA_FROM_GDO2_PIN
+  setMonitorCCA();
+  #endif
 
   return packet->length;
 }
@@ -668,8 +691,9 @@ unsigned short CC1101::receiveData(CCPACKET * packet)
  */
 bool CC1101::cca(void) 
 {
-  //return getGDO2state();
-
+  #ifdef CCA_FROM_GDO2_PIN
+  return !getGDO2state();
+  #else
   
   while(1) {
 
@@ -694,6 +718,8 @@ bool CC1101::cca(void)
 
     return raw2rssi(readStatusReg(CC1101_RSSI)) < cca_threshold;
   }
+
+  #endif
   
 }
 

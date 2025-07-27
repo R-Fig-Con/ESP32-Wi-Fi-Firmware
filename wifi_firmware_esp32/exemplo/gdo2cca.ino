@@ -1,10 +1,69 @@
 #include <Arduino.h>
-#include <WiFi.h>
-#include <esp_wifi.h>
+#include "esp_system.h"
+#include "esp_wifi.h"
 #include "src/cc1101_driver/cc1101_driver.h"
 #include "src/cc1101_driver/ccpacket.h"
 #include "src/traffic_generator/traffic_generator.h"
 #include "src/csma_control/csma_control.h"
+#include "src/wifi_config/wifi_config.h"
+#include "src/param_data/param_data.h"
+#include "src/mac_data/mac_data.h"
+
+
+#define CCA_FROM_GDO2_PIN "Irrelevant value"
+
+/**
+ * to uncomment if answer task logic changes with mac protocol parameter change
+*/
+#define ANSWER_TASK_CHANGES_WITH_PARAMETERS "Irrelevant value"
+
+#define ANSWER_TASK_PRIORITY 10
+#define TRAFFIC_GENERATOR_PRIORITY 5
+#define PARAMETER_CHANGE_PRIORITY 2 // smaller than traffic generation
+/**
+ * If not 0 watchdog from core 0 is activated, since it contains blocking function
+*/
+#define WIFI_TASK_PRIORITY 0
+#define LOOP_PRIORITY 1
+
+/**
+ * When defined, code is on debug mode, and prints values with the defines
+ *
+ * If not defined code should not do prints
+*/
+//#define MONITOR_DEBUG_MODE //Does not need a value
+
+#ifdef MONITOR_DEBUG_MODE
+#define PRINTLN(string) Serial.println(F(string))
+#define PRINT(string) Serial.print(F(string))
+#define PRINTLN_VALUE(value) Serial.println(value)
+#define PRINTLN_MAC(value) Serial.printf("%02X:%02X:%02X:%02X:%02X:%02X\n", value[0], value[1], value[2], value[3], value[4], value[5])
+#else
+#define PRINTLN(void) 
+#define PRINT(void) 
+#define PRINTLN_VALUE(void)
+#define PRINTLN_MAC(void) 
+#endif
+
+
+#define DEFAULT_BACKOFF_ALGORITHM CONSTANT
+/**
+ * content does not include size for frame control bits (ieeeFrame)
+*/
+#define DEFAULT_FRAME_CONTENT_SIZE 1000
+
+/*
+ * Array value declaration. Ensure array is big enough for MAC address
+*/
+//#define DEFAULT_MAC_ADDRESS {0x4C, 0x11, 0xAE, 0x64, 0xD1, 0x8D}
+
+//#define DEFAULT_MAC_ADDRESS {0xBC, 0xDD, 0xC2, 0xCC, 0x3B, 0x31}
+
+#define DEFAULT_MAC_ADDRESS {0x1C, 0x69, 0x20, 0x30, 0xDF, 0x41}
+
+#define DEFAULT_TIME_INTERVAL_MODE TRF_GEN_GAUSS
+
+#define DEFAULT_TIME_INTERVAL 0
 
 CC1101 radio;
 
@@ -26,7 +85,7 @@ int id = 0;
 void setup() {
 
     // Serial communication for debug
-    Serial.begin(115200);
+    Serial.begin(57600);
 
     // Wifi, for getting the MAC address.
     WiFi.mode(WIFI_STA);
@@ -47,6 +106,8 @@ void setup() {
     if (id == 0){
       attachInterrupt(CC1101_GDO0, messageReceived, RISING);
     }
+
+    radio.setRxState();
     
     
 }
@@ -66,15 +127,16 @@ void loop(){
     */
     
     /*
-    //detachInterrupt(CC1101_GDO0);
+    detachInterrupt(CC1101_GDO0);
     radio.reset();
-    //attachInterrupt(CC1101_GDO0, messageReceived, RISING);
+    attachInterrupt(CC1101_GDO0, messageReceived, RISING);
+    radio.setRxState();
     */
 
     Serial.println(F("Reeboted Reeboted Reeboted Reeboted Reeboted Reeboted Reeboted Reeboted\n\n"));
   }
   if(id){
-    delay(20000);
+    delay(10000);
     Serial.println(F("JAMMING"));
     radio.jamming();
   }
@@ -91,16 +153,20 @@ void loop(){
     }
 
     Serial.print(F("Read rssi; value:"));
-    Serial.println(rssi);
+    Serial.print(rssi);
 
-    Serial.print(F("Read state; value:"));
-    Serial.println(radio.readStatusReg(CC1101_MARCSTATE));
+    Serial.print(F(";\tRead state; value:"));
+    Serial.print(radio.readStatusReg(CC1101_MARCSTATE));
+
+    Serial.print(F("\tRead gdo2 state; value:"));
+    Serial.println(radio.readConfigReg(CC1101_IOCFG2));
+
 
     delay(200);
     receiver();
   }
   
-  Serial.println("Loop end");
+  //Serial.println("Loop end");
 }
 
 void receiver() {
