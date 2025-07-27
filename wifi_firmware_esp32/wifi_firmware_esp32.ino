@@ -43,9 +43,9 @@
 #endif
 
 
-#define DEFAULT_BACKOFF_ALGORITHM MILD
+#define DEFAULT_BACKOFF_ALGORITHM CONSTANT
 /**
- * content does not include size for frame control bits (ieeeGrame)
+ * content does not include size for frame control bits (ieeeFrame)
 */
 #define DEFAULT_FRAME_CONTENT_SIZE 1000
 
@@ -54,104 +54,11 @@
 */
 #define DEFAULT_MAC_ADDRESS {0x4C, 0x11, 0xAE, 0x64, 0xD1, 0x8D}
 
+
+
 #define DEFAULT_TIME_INTERVAL_MODE TRF_GEN_GAUSS
 
-#define DEFAULT_TIME_INTERVAL 200
-
-/**
- * multiple increase, linear decrease
-*/
-class MILD_BACKOFF: public CONTENTION_BACKOFF{
-
-  void reduceContentionWindow(){
-    uint8_t newWindow = this->contentionWindow - 1;
-
-    if (newWindow >= this->minimum){
-      this->contentionWindow = newWindow;
-    }
-  }
-
-  
-  void increaseContentionWindow(){
-    uint8_t newWindow = this->contentionWindow << 1;
-
-    if (newWindow <= this->maximum){
-      this->contentionWindow = newWindow;
-    }
-  }
-
-  public:
-     MILD_BACKOFF(){
-      this->minimum = 15;
-      this->contentionWindow = 15;
-      this->maximum = 1023;
-     }
-
-};
-
-
-class LINEAR_BACKOFF: public CONTENTION_BACKOFF{
-  void reduceContentionWindow(){
-    uint8_t newWindow = this->contentionWindow - 1;
-
-    if (newWindow >= this->minimum){
-      this->contentionWindow = newWindow;
-    }
-  }
-
-  
-  void increaseContentionWindow(){
-    uint8_t newWindow = this->contentionWindow + 1;
-
-    if (newWindow <= this->maximum){
-      this->contentionWindow = newWindow;
-    }
-  }
-
-  public:
-     LINEAR_BACKOFF(){
-      this->minimum = 15;
-      this->contentionWindow = 15;
-      this->maximum = 1027;
-     }
-};
-
-
-/**
- * Constantly on value 15
- */
-class CONSTANT_BACKOFF: public CONTENTION_BACKOFF{
-  void reduceContentionWindow(){}
-
-  
-  void increaseContentionWindow(){}
-
-  public:
-     CONSTANT_BACKOFF(){
-      this->minimum = 15;
-      this->contentionWindow = 15;
-      this->maximum = 15;
-     }
-};
-
-/**
- * great to check collision when time in both traffics is the same and linear
- * 
- * Could be good to use in demonstration
- */
-class NO_BACKOFF: public CONTENTION_BACKOFF{
-  void reduceContentionWindow(){}
-
-  
-  void increaseContentionWindow(){}
-
-  public:
-    NO_BACKOFF(){
-      this->minimum = 0;
-      this->contentionWindow = 0;
-      this->maximum = 0;
-    }
-};
+#define DEFAULT_TIME_INTERVAL 0
 
 CC1101 radio;
 
@@ -306,19 +213,6 @@ ieeeFrame * rtsFrame = (ieeeFrame *) rts_packet.data;
  * wether to read or write
 */
 SemaphoreHandle_t xSemaphore = xSemaphoreCreateMutex();
-
-CONTENTION_BACKOFF* getBackoffProtocol(BACKOFF_PROTOCOLS protocol_enum){
-  switch(protocol_enum){
-    case MILD:
-      return new MILD_BACKOFF();
-    case LINEAR:
-      return new LINEAR_BACKOFF();
-    case NON_EXISTANT:
-      return new NO_BACKOFF();
-    case CONSTANT:
-      return new CONSTANT_BACKOFF();
-  }
-}
 
 /**
  * Task to change parameters of protocol, running on the same core to ensure cache is correct
@@ -512,7 +406,7 @@ void generatorTask(void* unusedParam){
 }
 
 void loop(){
-  
+    /*
     if(!trf_gen->isRunning()){
         PRINT("Initiating traffic..., loop has priority "); 
         PRINTLN_VALUE(uxTaskPriorityGet(NULL));
@@ -526,7 +420,19 @@ void loop(){
           1          // Core 1
         );
     }
-    
+    */
+
+    int random = (int) esp_random();
+
+    if(random < 0) random = -random;
+
+    int ranged_rand = random / (RAND_MAX / (15 + 1) + 1);
+    //int random = (int) esp_random();
+    //int ranged_rand = random / (RAND_MAX / (15 + 1) + 1);
+    Serial.printf("Raw random: %d, limited rand from 0..15: %d \n", random, ranged_rand);
+
+
+    delay(400);
 }
 
 /**
@@ -643,6 +549,11 @@ bool receiver() {
   packetWaiting = false;
 
   if(!destIsMe()){
+
+    if (receiveFrame->duration == 0){
+      return false;
+    }
+    
     uint16_t wait_time =  receiveFrame->duration;
     unsigned long wait_start = micros();
 
