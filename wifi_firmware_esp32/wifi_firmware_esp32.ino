@@ -406,7 +406,7 @@ void generatorTask(void* unusedParam){
 }
 
 void loop(){
-    /*
+    
     if(!trf_gen->isRunning()){
         PRINT("Initiating traffic..., loop has priority "); 
         PRINTLN_VALUE(uxTaskPriorityGet(NULL));
@@ -420,19 +420,8 @@ void loop(){
           1          // Core 1
         );
     }
-    */
+    
 
-    int random = (int) esp_random();
-
-    if(random < 0) random = -random;
-
-    int ranged_rand = random / (RAND_MAX / (15 + 1) + 1);
-    //int random = (int) esp_random();
-    //int ranged_rand = random / (RAND_MAX / (15 + 1) + 1);
-    Serial.printf("Raw random: %d, limited rand from 0..15: %d \n", random, ranged_rand);
-
-
-    delay(400);
 }
 
 /**
