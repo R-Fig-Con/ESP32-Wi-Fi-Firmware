@@ -300,8 +300,6 @@ void changeParametersTask(void* unusedParam){
 
 }
 
-
-CONTENTION_BACKOFF* alg;
 void setup() {
 
     // Serial communication for debug
@@ -379,7 +377,7 @@ void setup() {
     //char def_msg[] = "Default Message";
     //trf_gen->setMessage(def_msg, strlen(def_msg));
     
-    /**
+    
     xTaskCreatePinnedToCore(
       &receiveAndAnswerTask,
       "receive and send acknowledge",
@@ -400,9 +398,8 @@ void setup() {
       1 //putting related to cc1101 on same core
     );
     
-    */
     
-    alg = getBackoffProtocol(CONSTANT);
+  
 
     mac_data.startTime = millis();
 
@@ -421,16 +418,19 @@ void generatorTask(void* unusedParam){
 int count = 0;
 void loop(){
     
-    uint16_t back = alg->getBackoff();
-
-    count += 1;
-
-    if(count == 15){
-      count = 0; Serial.println();
+    if(!trf_gen->isRunning()){
+        PRINT("Initiating traffic..., loop has priority "); 
+        PRINTLN_VALUE(uxTaskPriorityGet(NULL));
+        xTaskCreatePinnedToCore(
+          &generatorTask,     // Function to execute
+          "traffic generator",   // Name of the task
+          10000,      // Stack size
+          NULL,      // Task parameters
+          TRAFFIC_GENERATOR_PRIORITY,         // Priority
+          &generatorHandle,      // Task handle
+          1          // Core 1
+        );
     }
-    
-    Serial.print(back); Serial.print(";  ");
-    delay(200);
 
 }
 
