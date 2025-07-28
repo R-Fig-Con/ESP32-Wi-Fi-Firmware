@@ -7,7 +7,7 @@ Developed By:
 # Wi-Fi firmware for ESP32
 ## A Low-Cost Experimental Platform for Dense Wireless Networks
 
-This repository contains the firmware for a wireless Medium Access Control (MAC) protocol implementation, developed for an ESP32 microcontroller paired with a CC1101 radio module.
+This repository contains the firmware for a wireless Medium Access Control (MAC) protocol implementation, developed for an ESP32 microcontroller development board (DOIT ESP32 DEVKIT V1) paired with a CC1101 radio module.
 
 Key components include:
 
