@@ -42,15 +42,31 @@
   int abcdefg = 0;\
   while(1){\
     if (getGDO0state()){\
-      Serial.println("EEEe");\
       break;\
     }\
     abcdefg += 1;\
     if (abcdefg == 1800){\
-      Serial.print(F("STUCK, ")); Serial.println(readStatusReg(CC1101_MARCSTATE));\
+      Serial.print(F("STUCK, marcstate: ")); Serial.print(readStatusReg(CC1101_MARCSTATE)); Serial.print("; gdo2 reg: "); Serial.println(readStatusReg(CC1101_IOCFG2));\
+      if(extra_packet_waiting){Serial.println("Response task failed????");}\
+      if(packetWaiting){Serial.println("Traffic generator receive failed????");} abcdefg = 0;\
+      Serial.printf("Number of bytes in rx: %u\n", readStatusReg(CC1101_RXBYTES));\
     }\
   }\
 }
+
+#define wait_GDO0_high_abort(){\
+  while(1){\
+    if (getGDO0state()){\
+      break;\
+    }\
+    if (readStatusReg(CC1101_MARCSTATE) == 17){\
+        setIdleState(); flushTxFifo(); setPacketLengthConfig(CC1101_LENGTH_CONFIG_INFINITE);\
+        setRxState(); setMonitorCCA();\
+        return false;\
+    }\
+  }\
+}
+
 // Wait until GDO0 line goes low
 #define wait_GDO0_low()  while(getGDO0state())
 // Wait until GDO2 line goes high
@@ -111,13 +127,17 @@ void CC1101::wakeUp(void)
  */
 void CC1101::writeReg(byte regAddr, byte value) 
 {
+  #ifndef CCA_FROM_GDO2_PIN
   taskENTER_CRITICAL(&myMutex);
+  #endif
   cc1101_Select();                      // Select CC1101
   wait_Miso();                          // Wait until MISO goes low
   SPI.transfer(regAddr);                // Send register address
   SPI.transfer(value);                  // Send value
   cc1101_Deselect();                    // Deselect CC1101
+  #ifndef CCA_FROM_GDO2_PIN
   taskEXIT_CRITICAL(&myMutex);
+  #endif
 }
 
 /**
@@ -178,14 +198,18 @@ byte CC1101::readReg(byte regAddr, byte regType)
 
   addr = regAddr | regType;
   
+  #ifndef CCA_FROM_GDO2_PIN
   taskENTER_CRITICAL(&myMutex);
+  #endif
   cc1101_Select();                      // Select CC1101
   wait_Miso();                          // Wait until MISO goes low
   SPI.transfer(addr);                   // Send register address
   val = SPI.transfer(0x00);             // Read result
   cc1101_Deselect();                    // Deselect CC1101
 
+  #ifndef CCA_FROM_GDO2_PIN
   taskEXIT_CRITICAL(&myMutex);
+  #endif
 
   return val;
 }
@@ -487,7 +511,7 @@ bool CC1101::sendData(CCPACKET packet)
   setTxState();
 
   // Wait until the transmission starts
-  wait_GDO0_high();
+  wait_GDO0_high_abort();
 
   // As space becomes available in the FIFO, push more
   // of the packet payload.

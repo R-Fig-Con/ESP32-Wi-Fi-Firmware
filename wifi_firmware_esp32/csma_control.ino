@@ -2,6 +2,7 @@ CSMA_CONTROL::CSMA_CONTROL(bool (*isChannelFree)(), CONTENTION_BACKOFF* contenti
     this->checkChannel = isChannelFree;
     this->contentionAlgorithm = contentionBackoff;
 
+    #ifndef CCA_FROM_GDO2_PIN
     unsigned long start = micros();
     this->checkChannel();
     unsigned long end = micros();
@@ -11,6 +12,8 @@ CSMA_CONTROL::CSMA_CONTROL(bool (*isChannelFree)(), CONTENTION_BACKOFF* contenti
     this->backoffRepetition = (uint8_t) (BACKOFF_TIME_SLOT / duration) + 1;
     this->sifsRepetition = (uint8_t) (SIFS / duration) + 1;
 
+    #endif
+
     this->backoffCount = this->contentionAlgorithm->getBackoff();
     
 }
@@ -18,6 +21,51 @@ CSMA_CONTROL::~CSMA_CONTROL(){
     delete contentionAlgorithm;
 }
 
+#ifdef CCA_FROM_GDO2_PIN
+void CSMA_CONTROL::waitForTurn(){
+
+    unsigned long start;
+    notFree:
+    while (true){
+        if(checkChannel()){
+            break;
+        }
+        delayMicroseconds(200);
+    };
+
+    
+    start = micros();
+    while (true){
+        if (!this->checkChannel()){
+            goto notFree;
+        }
+
+        if (micros() - start >= DIFS){
+            break;
+        }
+        delayMicroseconds(200);
+    }
+
+    //backoff time slots
+    start = micros();
+    while (true){
+        if (!this->checkChannel()){
+            goto notFree;
+        }
+
+        if (micros() - start >= BACKOFF_TIME_SLOT){
+            this->backoffCount -= 1;
+
+            if (this->backoffCount == 0){
+                break;
+            }
+            
+        }
+        delayMicroseconds(200);
+    }
+    
+}
+#else
 void CSMA_CONTROL::waitForTurn(){
     notFree:
     while (!checkChannel());
@@ -36,6 +84,7 @@ void CSMA_CONTROL::waitForTurn(){
     }
     
 }
+#endif
 
 
 void CSMA_CONTROL::ackReceived(bool wasReceived){

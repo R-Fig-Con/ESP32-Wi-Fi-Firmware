@@ -1,7 +1,8 @@
-uint8_t CONTENTION_BACKOFF::getBackoff(){
+uint16_t CONTENTION_BACKOFF::getBackoff(){
     //https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/random.html#_CPPv410esp_randomv
     //https://stackoverflow.com/questions/1202687/how-do-i-get-a-specific-range-of-numbers-from-rand
     //minimum as 0
+
     int random = (int) esp_random();
 
     if(random < 0) random = -random;
@@ -16,7 +17,7 @@ uint8_t CONTENTION_BACKOFF::getBackoff(){
 class MILD_BACKOFF: public CONTENTION_BACKOFF{
 
   void reduceContentionWindow(){
-    uint8_t newWindow = this->contentionWindow - 1;
+    uint16_t newWindow = this->contentionWindow - 1;
 
     if (newWindow >= this->minimum){
       this->contentionWindow = newWindow;
@@ -25,7 +26,7 @@ class MILD_BACKOFF: public CONTENTION_BACKOFF{
 
   
   void increaseContentionWindow(){
-    uint8_t newWindow = this->contentionWindow << 1;
+    uint16_t newWindow = this->contentionWindow << 1;
 
     if (newWindow <= this->maximum){
       this->contentionWindow = newWindow;
@@ -44,7 +45,7 @@ class MILD_BACKOFF: public CONTENTION_BACKOFF{
 
 class LINEAR_BACKOFF: public CONTENTION_BACKOFF{
   void reduceContentionWindow(){
-    uint8_t newWindow = this->contentionWindow - 1;
+    uint16_t newWindow = this->contentionWindow - 1;
 
     if (newWindow >= this->minimum){
       this->contentionWindow = newWindow;
@@ -53,7 +54,7 @@ class LINEAR_BACKOFF: public CONTENTION_BACKOFF{
 
   
   void increaseContentionWindow(){
-    uint8_t newWindow = this->contentionWindow + 1;
+    uint16_t newWindow = this->contentionWindow + 1;
 
     if (newWindow <= this->maximum){
       this->contentionWindow = newWindow;
@@ -80,9 +81,9 @@ class CONSTANT_BACKOFF: public CONTENTION_BACKOFF{
 
   public:
      CONSTANT_BACKOFF(){
-      this->minimum = 100;
-      this->contentionWindow = 100;
-      this->maximum = 100;
+      this->minimum = 1000;
+      this->contentionWindow = 1000;
+      this->maximum = 1000;
      }
 };
 

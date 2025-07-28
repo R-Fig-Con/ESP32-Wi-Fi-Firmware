@@ -33,6 +33,9 @@ class CSMA_CONTROL
         */
        bool (*checkChannel)();
 
+       #ifndef CCA_FROM_GDO2_PIN
+
+
        /**
         * number of times this.checkChannel should be checked to cover backoff time
         */
@@ -73,6 +76,8 @@ class CSMA_CONTROL
         return true;
        }
 
+       #endif
+       
    public:
 
        /**

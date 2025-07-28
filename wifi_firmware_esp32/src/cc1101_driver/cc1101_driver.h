@@ -346,7 +346,9 @@ class CC1101
 
     int8_t cca_threshold;
 
+    #ifndef CCA_FROM_GDO2_PIN
     portMUX_TYPE myMutex = portMUX_INITIALIZER_UNLOCKED;
+    #endif
 
     /**
      * writeBurstReg

@@ -9,6 +9,8 @@
 #include "src/param_data/param_data.h"
 #include "src/mac_data/mac_data.h"
 
+#define CCA_FROM_GDO2_PIN "Irrelevant value"
+
 /**
  * to uncomment if answer task logic changes with mac protocol parameter change
 */
@@ -52,7 +54,13 @@
 /*
  * Array value declaration. Ensure array is big enough for MAC address
 */
-#define DEFAULT_MAC_ADDRESS {0x4C, 0x11, 0xAE, 0x64, 0xD1, 0x8D}
+//#define DEFAULT_MAC_ADDRESS {0x4C, 0x11, 0xAE, 0x64, 0xD1, 0x8D}
+
+//#define DEFAULT_MAC_ADDRESS {0xBC, 0xDD, 0xC2, 0xCC, 0x3B, 0x31}
+
+#define DEFAULT_MAC_ADDRESS {0x1C, 0x69, 0x20, 0x30, 0xDF, 0x41}
+
+
 
 
 
@@ -292,6 +300,8 @@ void changeParametersTask(void* unusedParam){
 
 }
 
+
+CONTENTION_BACKOFF* alg;
 void setup() {
 
     // Serial communication for debug
@@ -369,7 +379,7 @@ void setup() {
     //char def_msg[] = "Default Message";
     //trf_gen->setMessage(def_msg, strlen(def_msg));
     
-    
+    /**
     xTaskCreatePinnedToCore(
       &receiveAndAnswerTask,
       "receive and send acknowledge",
@@ -390,6 +400,9 @@ void setup() {
       1 //putting related to cc1101 on same core
     );
     
+    */
+    
+    alg = getBackoffProtocol(CONSTANT);
 
     mac_data.startTime = millis();
 
@@ -405,22 +418,19 @@ void generatorTask(void* unusedParam){
   trf_gen->init();//is already a loop. Maybe change to add init restart on isRunning == false?
 }
 
+int count = 0;
 void loop(){
     
-    if(!trf_gen->isRunning()){
-        PRINT("Initiating traffic..., loop has priority "); 
-        PRINTLN_VALUE(uxTaskPriorityGet(NULL));
-        xTaskCreatePinnedToCore(
-          &generatorTask,     // Function to execute
-          "traffic generator",   // Name of the task
-          10000,      // Stack size
-          NULL,      // Task parameters
-          TRAFFIC_GENERATOR_PRIORITY,         // Priority
-          &generatorHandle,      // Task handle
-          1          // Core 1
-        );
+    uint16_t back = alg->getBackoff();
+
+    count += 1;
+
+    if(count == 15){
+      count = 0; Serial.println();
     }
     
+    Serial.print(back); Serial.print(";  ");
+    delay(200);
 
 }
 
@@ -537,6 +547,10 @@ bool receiver() {
   //only necessary if is handled by traffic task; probably shoul be placed somewhere else; TODO
   packetWaiting = false;
 
+  if(packet_to_receive.crc_ok == false){
+    return false;
+  }
+
   if(!destIsMe()){
 
     if (receiveFrame->duration == 0){
@@ -557,6 +571,6 @@ bool receiver() {
 
   attachInterrupt(CC1101_GDO0, messageReceived, RISING);
 
-  return packet_to_receive.crc_ok;
+  return true;
 
 }

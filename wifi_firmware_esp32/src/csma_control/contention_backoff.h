@@ -4,12 +4,12 @@ class CONTENTION_BACKOFF{
          /**
           * minimum value contention window allows
           */
-         uint8_t minimum;
+         uint16_t minimum;
 
          /**
           * current contention window
           */
-         uint8_t contentionWindow;
+         uint16_t contentionWindow;
 
          /**
           * max value contention window allows
@@ -21,7 +21,7 @@ class CONTENTION_BACKOFF{
          /**
           * returns random backoff value
           */
-         uint8_t getBackoff();
+         uint16_t getBackoff();
 
          /**
           * reduce contention window as desired by implementer
