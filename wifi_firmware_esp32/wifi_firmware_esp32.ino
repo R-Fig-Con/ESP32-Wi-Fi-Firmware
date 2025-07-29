@@ -18,7 +18,7 @@
 
 #define ANSWER_TASK_PRIORITY 10
 #define TRAFFIC_GENERATOR_PRIORITY 5
-#define PARAMETER_CHANGE_PRIORITY 2 // smaller than traffic generation
+#define PARAMETER_CHANGE_PRIORITY 6
 /**
  * If not 0 watchdog from core 0 is activated, since it contains blocking function
 */
