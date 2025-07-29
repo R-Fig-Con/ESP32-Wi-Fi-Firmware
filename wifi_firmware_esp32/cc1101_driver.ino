@@ -61,12 +61,14 @@
     }\
     if (readStatusReg(CC1101_MARCSTATE) == 17){\
         setIdleState(); flushTxFifo(); setPacketLengthConfig(CC1101_LENGTH_CONFIG_INFINITE);\
-        setRxState(); setMonitorCCA();\
+        Serial.println("Aborted on transmit");\
+        setMonitorCCA();setRxState();\
         return false;\
     }\
   }\
 }
 
+//Serial.println("Aborted on transmit");
 // Wait until GDO0 line goes low
 #define wait_GDO0_low()  while(getGDO0state())
 // Wait until GDO2 line goes high
@@ -530,12 +532,12 @@ bool CC1101::sendData(CCPACKET packet)
         // Put the radio back in infinite packet mode  
         setPacketLengthConfig(CC1101_LENGTH_CONFIG_INFINITE);
       
-        // Enter back into RX state
-        setRxState();
-
         #ifdef CCA_FROM_GDO2_PIN
         setMonitorCCA();
         #endif
+
+        // Enter back into RX state
+        setRxState();
         
         return false;
       }
@@ -562,12 +564,12 @@ bool CC1101::sendData(CCPACKET packet)
   // Put the radio back in infinite packet mode  
   setPacketLengthConfig(CC1101_LENGTH_CONFIG_INFINITE);
 
-  // Enter back into RX state
-  setRxState();
-
   #ifdef CCA_FROM_GDO2_PIN
   setMonitorCCA();
   #endif
+
+  // Enter back into RX state
+  setRxState();
 
   return true;
 }
@@ -623,13 +625,13 @@ unsigned short CC1101::receiveData(CCPACKET * packet)
         
         // Put the radio back in infinite packet mode  
         setPacketLengthConfig(CC1101_LENGTH_CONFIG_INFINITE);
-        
-        // Back to RX state
-        setRxState();
-        
+
         #ifdef CCA_FROM_GDO2_PIN
         setMonitorCCA();
         #endif
+        
+        // Back to RX state
+        setRxState();
 
         return 0;
       }
@@ -653,13 +655,13 @@ unsigned short CC1101::receiveData(CCPACKET * packet)
       
       // Put the radio back in infinite packet mode  
       setPacketLengthConfig(CC1101_LENGTH_CONFIG_INFINITE);
-      
-      // Back to RX state
-      setRxState();
 
       #ifdef CCA_FROM_GDO2_PIN
       setMonitorCCA();
       #endif
+      
+      // Back to RX state
+      setRxState();
 
       return 0;
     }
@@ -682,13 +684,13 @@ unsigned short CC1101::receiveData(CCPACKET * packet)
   
   // Put the radio back in infinite packet mode  
   setPacketLengthConfig(CC1101_LENGTH_CONFIG_INFINITE);
-  
-  // Back to RX state
-  setRxState();
 
   #ifdef CCA_FROM_GDO2_PIN
   setMonitorCCA();
   #endif
+  
+  // Back to RX state
+  setRxState();
 
   return packet->length;
 }

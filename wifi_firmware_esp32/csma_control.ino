@@ -30,7 +30,6 @@ void CSMA_CONTROL::waitForTurn(){
         if(checkChannel()){
             break;
         }
-        delayMicroseconds(200);
     };
 
     
@@ -43,7 +42,6 @@ void CSMA_CONTROL::waitForTurn(){
         if (micros() - start >= DIFS){
             break;
         }
-        delayMicroseconds(200);
     }
 
     //backoff time slots
@@ -61,7 +59,6 @@ void CSMA_CONTROL::waitForTurn(){
             }
             
         }
-        delayMicroseconds(200);
     }
     
 }

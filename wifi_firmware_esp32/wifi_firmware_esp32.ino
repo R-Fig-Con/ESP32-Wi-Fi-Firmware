@@ -300,6 +300,8 @@ void changeParametersTask(void* unusedParam){
 
 }
 
+
+
 void setup() {
 
     // Serial communication for debug
@@ -340,7 +342,12 @@ void setup() {
     PRINT("CC1101_MARCSTATE ");
     PRINTLN_VALUE(radio.readReg(CC1101_MARCSTATE, CC1101_STATUS_REGISTER) & 0x1f);
 
-    PRINTLN_VALUE("CC1101 radio initialized.");    
+    PRINTLN_VALUE("CC1101 radio initialized.");   
+
+
+    uint32_t mac_num = ((uint32_t)myMacAddress[2] << 24) | ((uint32_t)myMacAddress[3] << 16) |
+                  ((uint32_t)myMacAddress[4] << 8)  | ((uint32_t)myMacAddress[5]);
+    srand(mac_num);
     
     
     xTaskCreatePinnedToCore(

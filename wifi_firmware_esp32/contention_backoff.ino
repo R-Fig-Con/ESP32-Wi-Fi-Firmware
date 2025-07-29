@@ -3,7 +3,7 @@ uint16_t CONTENTION_BACKOFF::getBackoff(){
     //https://stackoverflow.com/questions/1202687/how-do-i-get-a-specific-range-of-numbers-from-rand
     //minimum as 0
 
-    int random = (int) esp_random();
+    int random = (int) rand();
 
     if(random < 0) random = -random;
 
@@ -81,9 +81,9 @@ class CONSTANT_BACKOFF: public CONTENTION_BACKOFF{
 
   public:
      CONSTANT_BACKOFF(){
-      this->minimum = 1000;
-      this->contentionWindow = 1000;
-      this->maximum = 1000;
+      this->minimum = 100;
+      this->contentionWindow = 100;
+      this->maximum = 100;
      }
 };
 
