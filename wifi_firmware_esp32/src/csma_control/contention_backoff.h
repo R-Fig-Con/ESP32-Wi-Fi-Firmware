@@ -1,3 +1,14 @@
+//#include "../param_data/param_data.h"
+
+/**
+ * list of backoff protocols from which to choose
+*/
+enum BACKOFF_PROTOCOLS{
+  MILD,
+  LINEAR,
+  NON_EXISTANT,
+  CONSTANT
+};
 
 class CONTENTION_BACKOFF{
     protected:
@@ -33,3 +44,41 @@ class CONTENTION_BACKOFF{
           */
          virtual void increaseContentionWindow();
 };
+
+class LINEAR_BACKOFF: public CONTENTION_BACKOFF{
+     public:
+          LINEAR_BACKOFF();
+
+         virtual void reduceContentionWindow();
+
+         virtual void increaseContentionWindow();
+};
+
+class CONSTANT_BACKOFF: public CONTENTION_BACKOFF{
+     public:
+          CONSTANT_BACKOFF();
+
+          virtual void reduceContentionWindow();
+
+          virtual void increaseContentionWindow();
+};
+
+class NO_BACKOFF: public CONTENTION_BACKOFF{
+     public:
+          NO_BACKOFF();
+
+          virtual void reduceContentionWindow();
+
+          virtual void increaseContentionWindow();
+};
+
+class MILD_BACKOFF: public CONTENTION_BACKOFF{
+     public: 
+          MILD_BACKOFF();
+
+          virtual void reduceContentionWindow();
+
+          virtual void increaseContentionWindow();
+};
+
+CONTENTION_BACKOFF* getBackoffProtocol(BACKOFF_PROTOCOLS protocol_enum);

@@ -1,14 +1,4 @@
 /**
- * list of backoff protocols from which to choose
-*/
-enum BACKOFF_PROTOCOLS{
-  MILD,
-  LINEAR,
-  NON_EXISTANT,
-  CONSTANT
-};
-
-/**
  * parameter collection for trafficGenerator
 */
 struct trafficGeneratorTimeParameters{

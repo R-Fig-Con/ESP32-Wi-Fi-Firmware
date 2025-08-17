@@ -11,101 +11,72 @@ uint16_t CONTENTION_BACKOFF::getBackoff(){
 }
 
 
+
+
+void MILD_BACKOFF::reduceContentionWindow(){
+  uint16_t newWindow = this->contentionWindow - 1;
+  if (newWindow >= this->minimum){
+    this->contentionWindow = newWindow;
+  }
+}
+
+void MILD_BACKOFF::increaseContentionWindow(){
+  uint16_t newWindow = this->contentionWindow << 1;
+  if (newWindow <= this->maximum){
+    this->contentionWindow = newWindow;
+  }
+}
+
+MILD_BACKOFF::MILD_BACKOFF(){
+ this->minimum = 15;
+ this->contentionWindow = 15;
+ this->maximum = 1023;
+}
+
+
+void LINEAR_BACKOFF::reduceContentionWindow(){
+  uint16_t newWindow = this->contentionWindow - 1;
+  if (newWindow >= this->minimum){
+    this->contentionWindow = newWindow;
+  }
+}
+
+void LINEAR_BACKOFF::increaseContentionWindow(){
+  uint16_t newWindow = this->contentionWindow + 1;
+  if (newWindow <= this->maximum){
+    this->contentionWindow = newWindow;
+  }
+}
+LINEAR_BACKOFF::LINEAR_BACKOFF(){
+ this->minimum = 15;
+ this->contentionWindow = 15;
+ this->maximum = 1027;
+}
+
+void CONSTANT_BACKOFF::reduceContentionWindow(){}
+
+void CONSTANT_BACKOFF::increaseContentionWindow(){}
+
+CONSTANT_BACKOFF::CONSTANT_BACKOFF(){
+ this->minimum = 100;
+ this->contentionWindow = 100;
+ this->maximum = 100;
+}
+
+void NO_BACKOFF::reduceContentionWindow(){}
+
+void NO_BACKOFF::increaseContentionWindow(){}
+
+NO_BACKOFF::NO_BACKOFF(){
+  this->minimum = 0;
+  this->contentionWindow = 0;
+  this->maximum = 0;
+}
+
 /**
- * multiple increase, linear decrease
-*/
-class MILD_BACKOFF: public CONTENTION_BACKOFF{
-
-  void reduceContentionWindow(){
-    uint16_t newWindow = this->contentionWindow - 1;
-
-    if (newWindow >= this->minimum){
-      this->contentionWindow = newWindow;
-    }
-  }
-
-  
-  void increaseContentionWindow(){
-    uint16_t newWindow = this->contentionWindow << 1;
-
-    if (newWindow <= this->maximum){
-      this->contentionWindow = newWindow;
-    }
-  }
-
-  public:
-     MILD_BACKOFF(){
-      this->minimum = 15;
-      this->contentionWindow = 15;
-      this->maximum = 1023;
-     }
-
-};
-
-
-class LINEAR_BACKOFF: public CONTENTION_BACKOFF{
-  void reduceContentionWindow(){
-    uint16_t newWindow = this->contentionWindow - 1;
-
-    if (newWindow >= this->minimum){
-      this->contentionWindow = newWindow;
-    }
-  }
-
-  
-  void increaseContentionWindow(){
-    uint16_t newWindow = this->contentionWindow + 1;
-
-    if (newWindow <= this->maximum){
-      this->contentionWindow = newWindow;
-    }
-  }
-
-  public:
-     LINEAR_BACKOFF(){
-      this->minimum = 15;
-      this->contentionWindow = 15;
-      this->maximum = 1027;
-     }
-};
-
-
-/**
- * Constantly on value 15
+ * Return protocol instance from identifier.
+ *  If param not recognized returns constant instance
  */
-class CONSTANT_BACKOFF: public CONTENTION_BACKOFF{
-  void reduceContentionWindow(){}
-
-  
-  void increaseContentionWindow(){}
-
-  public:
-     CONSTANT_BACKOFF(){
-      this->minimum = 100;
-      this->contentionWindow = 100;
-      this->maximum = 100;
-     }
-};
-
-/**
- * great to check collision when time in both traffics is the same and linear
- * 
- * Could be good to use in demonstration
- */
-class NO_BACKOFF: public CONTENTION_BACKOFF{
-  void reduceContentionWindow(){}
-
-  
-  void increaseContentionWindow(){}
-
-  public:
-    NO_BACKOFF(){
-      this->minimum = 0;
-      this->contentionWindow = 0;
-      this->maximum = 0;
-    }
-};
-
 CONTENTION_BACKOFF* getBackoffProtocol(BACKOFF_PROTOCOLS protocol_enum){
   switch(protocol_enum){
     case MILD:
@@ -115,6 +86,7 @@ CONTENTION_BACKOFF* getBackoffProtocol(BACKOFF_PROTOCOLS protocol_enum){
     case NON_EXISTANT:
       return new NO_BACKOFF();
     case CONSTANT:
+    default:
       return new CONSTANT_BACKOFF();
   }
 }
