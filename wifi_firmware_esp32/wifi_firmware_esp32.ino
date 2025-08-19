@@ -61,9 +61,6 @@
 #define DEFAULT_MAC_ADDRESS {0x1C, 0x69, 0x20, 0x30, 0xDF, 0x41}
 
 
-
-
-
 #define DEFAULT_TIME_INTERVAL_MODE TRF_GEN_GAUSS
 
 #define DEFAULT_TIME_INTERVAL 0
@@ -123,8 +120,6 @@ bool destIsMe(){
  * Task will handle any communication started by another party
  * 
  * Is able to answer either to rts or data packets
- * 
- * Implements NAV by doing an active wait where it deactivates packet receiving capabilities
  */
 void receiveAndAnswerTask(void* unused_param){
 
@@ -315,15 +310,8 @@ void setup() {
 
     delay(1000);
 
-  #ifndef MONITOR_DEBUG_MODE
-    Serial.printf("My MAC: %02X:%02X:%02X:%02X:%02X:%02X\n", 
-      myMacAddress[0], 
-      myMacAddress[1], 
-      myMacAddress[2], 
-      myMacAddress[3], 
-      myMacAddress[4], 
-      myMacAddress[5]);
-  #endif
+    PRINT("My MAC:");
+    PRINTLN_MAC(myMacAddress);
 
     // Initialize the CC1101 radio
     radio.init();
@@ -422,7 +410,6 @@ void generatorTask(void* unusedParam){
   trf_gen->init();//is already a loop. Maybe change to add init restart on isRunning == false?
 }
 
-int count = 0;
 void loop(){
     
     if(!trf_gen->isRunning()){

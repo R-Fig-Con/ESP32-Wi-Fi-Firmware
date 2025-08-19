@@ -177,30 +177,28 @@ void sender_create_data_packet(CCPACKET * packet) {
   memcpy(f->addr_src, myMacAddress, 6);
 
   
-    // Fill the payload. Start by adding a sequence number.
-    // TODO: We will certainly want this sequence number to be 
-    // binary in the final version. We are using strings
-    // here just to simplify debug.
-    //    sprintf((char *) f->payload, "%08X ", seqNum++);
+  // Fill the payload. Start by adding a sequence number.
+  // TODO: We will certainly want this sequence number to be 
+  // binary in the final version. We are using strings
+  // here just to simplify debug.
+  //    sprintf((char *) f->payload, "%08X ", seqNum++);
 
-    // Now, fill the remainder of the payload with some 
-    // data (just to have something that is verificable on
-    // the receiver end).
-    // TODO: this can be safely removed on the final version,
-    // as the payload itself is not going to be important.
-    int l = 0;
-    for (int i = 0; i < 2000; i++) {
-      f->payload[l++] = (char) ((i % 42) + 48);
-    }
-    f->payload[l] = (char) 0;
+  // Now, fill the remainder of the payload with some 
+  // data (just to have something that is verificable on
+  // the receiver end).
+  // TODO: this can be safely removed on the final version,
+  // as the payload itself is not going to be important.
+  int l = 0;
+  for (int i = 0; i < 2000; i++) {
+    f->payload[l++] = (char) ((i % 42) + 48);
+  }
+  f->payload[l] = (char) 0;
 
-    // Set the packet length. It is the length of the payload
-    // because it is a string, remember to count the \0 at the end,
-    // plus the 6 bytes of the MAC address.
-    packet->length = strlen((char *) f->payload)  + 1 + 6;
+  // Set the packet length. It is the length of the payload
+  // because it is a string, remember to count the \0 at the end,
+  // plus the 6 bytes of the MAC address.
+  packet->length = strlen((char *) f->payload)  + 1 + 6;
   
-  
-  //packet->length = 0;
 
   Serial.print("PACKAGE TO SEND SIZE: ");
   Serial.println(packet->length);
