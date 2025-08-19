@@ -4,6 +4,13 @@
 #include <FL/Fl_Chart.H>
 #include <FL/Fl_Choice.H>
 
+/**
+ * note: redraw seems to work to already existing items
+ * 
+ * If it still did not exist, redrawing the mother group such as the window
+ * should work
+ */
+
 #define FIRST_CHOICE "first"
 #define SECOND_CHOICE "second"
 #define THIRD_CHOICE "third"
@@ -19,19 +26,20 @@
 Fl_Window *G_win = NULL;
 Fl_Choice *G_choice = NULL;
 
+
+
 //Fl_Group* grp = NULL;
 
-static Fl_Widget* first_view(){
-    Fl_Input* widg = new Fl_Input(BOX_X_START, BOX_Y_START, 75, 25, "First viw:");
-    return widg;
+static void first_view(){
+    new Fl_Input(BOX_X_START, BOX_Y_START, 75, 25, "First viw:");
 }
 
-static Fl_Widget* second_view(){
-    return new Fl_Input(BOX_X_START, BOX_Y_START, 75, 25, "Second view:");
+static void second_view(){
+    new Fl_Input(BOX_X_START, BOX_Y_START, 75, 25, "Second view:");
 }
 
-static Fl_Widget* third_view(){
-    return new Fl_Input(BOX_X_START, BOX_Y_START, 75, 25, "Third: aasd");
+static void third_view(){
+    new Fl_Input(BOX_X_START, BOX_Y_START, 75, 25, "Third: aasd");
 }
 
 // Fl_Choice callback for changing chart type()
@@ -41,20 +49,20 @@ static void chart_type_cb(Fl_Widget *w, void*) {
     switch (item->argument()){
     case 0:
         printf("First view draw\n");
-        first_view()->show();
-        G_choice->position(200, 50); G_choice->redraw();
+        first_view();
+        G_choice->position(200, 50);
         break;
     
     case 1:
         printf("Second view draw\n");
-        second_view()->show();
-        G_choice->position(250, 50); G_choice->redraw();
+        second_view();
+        G_choice->position(250, 50);
         break;
 
     case 2:
         printf("Third view draw\n");
-        third_view()->show();
-        G_choice->position(300, 50); G_choice->redraw();
+        third_view();
+        G_choice->position(300, 50);
         break;
     
     default:
