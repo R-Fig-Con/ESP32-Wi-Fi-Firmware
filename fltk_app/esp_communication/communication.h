@@ -1,3 +1,5 @@
+#include <arpa/inet.h> //for uint16_t
+
 #define ESP_PORT 5000
 #define ESP_IP "10.0.0.1"
 

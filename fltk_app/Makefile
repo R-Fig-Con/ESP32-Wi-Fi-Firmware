@@ -1,5 +1,5 @@
 build:
-	fltk-config --compile test.cxx
+	fltk-config --compile app.cxx
 	
 test:
 	fltk-config --compile test.cxx
