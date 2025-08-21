@@ -7,6 +7,9 @@
 #include <FL/Fl_Choice.H>
 #include <FL/Fl_Group.H>
 
+
+#include <FL/Fl_Sys_Menu_Bar.H> //top menu bar
+#include <FL/fl_ask.H> // pop up window
 #include <FL/Fl_Return_Button.H>
 
 #include "./esp_communication/communication.h"
@@ -58,8 +61,14 @@ Fl_Choice* Address_choice = NULL;
  */
 Fl_Input* Text_input = NULL;
 
-void backoff_choice_callback(Fl_Widget *w, void*){
-    w->argument();
+/**
+ * change to red as to mark change to send?
+ */
+void choice_callback(Fl_Widget *w, void*){
+    w->color(FL_RED);
+}
+
+void set_status_timer_callback(){
 
 }
 
@@ -78,6 +87,32 @@ void call(Fl_Widget*, void*){
     time_group->hide();
 }
 
+Fl_Menu_Item menutable[] = {
+  {"&Status timer",0,0,0,FL_SUBMENU},
+    {"set interval", 0,  0},
+    {"Undo", 0, 0},
+    {0},
+};
+
+/*
+void rename_button(Fl_Widget *o, void *v) {
+  int what = fl_int(v);
+  int ret = 0;
+  std::string input;
+  if (what == 0) {
+    fl_message_icon_label("§");
+    input = fl_input_str(ret, 0, "Input (no size limit, use ctrl/j for newline):", o->label());
+  } else {
+    fl_message_icon_label("€");
+    input = fl_password_str(ret, 20, "Enter password (max. 20 characters):", o->label());
+  }
+  if (ret == 0) {
+    o->copy_label(input.c_str());
+    o->redraw();
+  }
+}
+*/
+
 /**
  * personal note about group:
  * 
@@ -90,7 +125,9 @@ void call(Fl_Widget*, void*){
  */
 int main() {
 
-    G_win = new Fl_Window(1000, 510, "App");
+    G_win = new Fl_Window(1000, 510, "App"); //; G_win->set_modal();
+
+    Fl_Menu_Bar menubar (0,0,1000,30); menubar.menu(menutable);
 
     char buffer[127];
 
@@ -107,24 +144,20 @@ int main() {
     y_measure += 10;
 
     Time_type_choice = new Fl_Choice(X_START, y_measure, X_SIZE, Y_SIZE, "Interval type: ");
-    Time_type_choice->add("Gaussian", 0, backoff_choice_callback, (void*) 0);
-    Time_type_choice->add("Linear", 0, backoff_choice_callback, (void*) 1);
-
+    Time_type_choice->add("Gaussian", 0, NULL, (void*) 0);
+    Time_type_choice->add("Linear", 0, NULL, (void*) 1);
     y_measure += Y_SIZE + Y_SPACING; 
 
-    //time_group->add(Time_type_choice);
-
     Time_input = new Fl_Int_Input(X_START, y_measure, X_SIZE, Y_SIZE, "Time input");
-    Time_input->color(FL_DARK_RED); //Time_input->value(20); //Time_input->handle();
+    //Time_input->color(FL_DARK_RED);
     y_measure += Y_SIZE + Y_SPACING;
 
-    //time_group->add(Time_input);
-    time_group->end();
+    time_group->end(); // needed
 
     Backoff_choice = new Fl_Choice(X_START, y_measure, X_SIZE, Y_SIZE, "Backoff: ");
-    Backoff_choice->add("Mild", 0, backoff_choice_callback, (void*) BACKOFF_MILD_CHOICE);
-    Backoff_choice->add("No backoff", 0, backoff_choice_callback, (void*) BACKOFF_NONE_CHOICE);
-    Backoff_choice->add("Linear backoff", 0, backoff_choice_callback, (void*) BACKOFF_LINEAR_CHOICE);
+    Backoff_choice->add("Mild", 0, NULL, (void*) BACKOFF_MILD_CHOICE);
+    Backoff_choice->add("No backoff", 0, NULL, (void*) BACKOFF_NONE_CHOICE);
+    Backoff_choice->add("Linear backoff", 0, NULL, (void*) BACKOFF_LINEAR_CHOICE);
     y_measure += Y_SIZE + Y_SPACING;
 
     

@@ -1,1 +1,4 @@
 */bin/
+
+# from c/c++ compile
+*.o

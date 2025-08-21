@@ -1,21 +1,10 @@
 #include <arpa/inet.h> //for uint16_t
 
-#define ESP_PORT 5000
-#define ESP_IP "10.0.0.1"
-
 //not all may be necessary
 #define RETURN_SUCCESS 0
 #define RETURN_TERMINATE 1
-#define RETURN_INPUT_ERROR 2
-#define RETURN_ESP_ERROR 3
-#define RETURN_APP_ERROR 4
-
-#define TERMINATE_OPT_CODE 'x'
-#define STATUS_OPT_CODE 's'
-#define MESSAGE_OPT_CODE 'm'
-#define TIME_OPT_CODE 't'
-#define DEST_OPT_CODE 'd'
-#define BACKOFF_PROTOCOL_OPT_CODE 'b'
+#define RETURN_ESP_ERROR 2
+#define RETURN_APP_ERROR 3
 
 #define MAC_ADDRESS_SIZE 6
 
@@ -60,11 +49,12 @@ int set_destination(char address[MAC_ADDRESS_SIZE]);
  * 
  * @param length the length of the data
 */
-static int set_message(char option, char* data, uint16_t length);
+int set_message(char option, char* data, uint16_t length);
 
 /**
  * Set the backoff algorithm
  * 
  * @param algorithm the backoff algorithm
  */
-static int set_backoff(char algorithm);
+int set_backoff(char algorithm);
+

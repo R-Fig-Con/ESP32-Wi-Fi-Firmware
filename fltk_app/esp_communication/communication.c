@@ -5,7 +5,15 @@
 #include <arpa/inet.h>
 #include "communication.h"
 
+#define ESP_PORT 5000
+#define ESP_IP "10.0.0.1"
 
+#define TERMINATE_OPT_CODE 'x'
+#define STATUS_OPT_CODE 's'
+#define MESSAGE_OPT_CODE 'm'
+#define TIME_OPT_CODE 't'
+#define DEST_OPT_CODE 'd'
+#define BACKOFF_PROTOCOL_OPT_CODE 'b'
 
 #define MAX_MESSAGE_SIZE 1024
 
