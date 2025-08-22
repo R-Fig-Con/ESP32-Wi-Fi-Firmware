@@ -1,0 +1,3 @@
+CXX = $(shell fltk-config --cxx)
+CXXFLAGS = $(shell fltk-config --cxxflags) -Wall -I.
+LINKFLTK = $(shell  fltk-config --ldstaticflags)

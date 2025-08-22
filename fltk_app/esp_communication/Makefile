@@ -1,4 +1,6 @@
+include ../Makefile.FLTK
+
 compile: 
-	gcc -c communication.c
+	$(CXX) -c communication.c $(CXXFLAGS)
 clean:
 	rm -f *.o

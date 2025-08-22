@@ -1,17 +1,40 @@
-#include <arpa/inet.h> //for uint16_t
+#include <arpa/inet.h> //uint16_t, unit_32t
 
-//not all may be necessary
+
 #define RETURN_SUCCESS 0
-#define RETURN_TERMINATE 1
-#define RETURN_ESP_ERROR 2
-#define RETURN_APP_ERROR 3
+#define RETURN_ESP_ERROR 1
 
 #define MAC_ADDRESS_SIZE 6
 
+#define MAX_MESSAGE_SIZE 1024
+/**
+ * Contains error message from esp in operation failure
+ * 
+ * Failing on connection start will not receive a message
+ */
+extern char communication_buffer[MAX_MESSAGE_SIZE];
+
 typedef enum{
     GAUSSIAN = 0,
-    LINEAR = 1,
+    LINEAR_TIME= 1,
 } time_option;
+
+typedef enum{
+    LINEAR = 0,
+    MILD = 1,
+    NONE = 2,
+} backoff_option;
+
+typedef struct{
+    char type;
+    uint16_t time;
+    uint16_t success_count;
+    uint16_t failure_count;
+    uint32_t retry_count;
+    uint32_t running_time;
+    unsigned char dest_mac[MAC_ADDRESS_SIZE];
+    char* msg;
+} status;
 
 /**
  * connect to esp_32
@@ -21,7 +44,7 @@ int connection_start();
 /**
  * end communication
  */
-int connection_end();
+void connection_end();
 
 /**
  * Set time interval 
@@ -43,18 +66,24 @@ int set_destination(char address[MAC_ADDRESS_SIZE]);
  * Send data to Esp. Call after communication_start and
  * before communication_end
  * 
- * @param option  choose the kind of data to send
- * 
- * @param data char string containing data
+ * @param data message containing string
  * 
  * @param length the length of the data
 */
-int set_message(char option, char* data, uint16_t length);
+int set_message(char* data, uint16_t length);
 
 /**
  * Set the backoff algorithm
  * 
  * @param algorithm the backoff algorithm
  */
-int set_backoff(char algorithm);
+int set_backoff(backoff_option option);
 
+/**
+ * Get status updatefrom the esp device
+ * 
+ * @param mem pointer to status. Function will update it with received
+ * values. Unchanged and invalid if return is error indicator
+ * status.message will have malloc? TODO CHECK
+ */
+int get_status(status* mem);

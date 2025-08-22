@@ -1,3 +1,4 @@
+#include <stdlib.h> // atoi
 
 #include <FL/Fl.H>
 #include <FL/Fl_Window.H>
@@ -15,9 +16,19 @@
 #include "./esp_communication/communication.h"
 
 
-#define BACKOFF_MILD_CHOICE 1
-#define BACKOFF_NONE_CHOICE 2
-#define BACKOFF_LINEAR_CHOICE 3
+#define BACKOFF_MILD_CHOICE MILD
+#define BACKOFF_NONE_CHOICE NONE
+#define BACKOFF_LINEAR_CHOICE LINEAR
+
+#define LINEAR_TIME_INTERVAL LINEAR_TIME
+#define GAUSSIAN_TIME_INTERVAL GAUSSIAN
+
+#define ADDRESS_FIRST_CHOICE 1
+#define ADDRESS_SECOND_CHOICE 2
+#define ADDRESS_THIRD_CHOICE 3
+#define ADDRESS_FIRST_VALUE  "0X12_34_56_78_9A_BC"
+#define ADDRESS_SECOND_VALUE "0XFF_FF_FF_FF_FF_FF"
+#define ADDRESS_THIRD_VALUE "0XAA_AA_AA_AA_AA_AA"
 
 #define X_START 250
 #define Y_START 50
@@ -84,7 +95,50 @@ void call(Fl_Widget*, void*){
 
     printf("Address type value: %d\n", Address_choice->value());
 
-    time_group->hide();
+    //check if empty string is a null value
+    if(Text_input->value() == NULL){
+      printf("Message string pointer is null\n");
+    }else{
+      printf("Message string pointer is NOT null\n");
+    }
+
+    //testing to see what disappears
+    //time_group->hide();
+}
+
+/**
+ * This callback will send all data, even the ones user has not changed
+ * Only exception is empty text boxes
+ */
+void send_all_data_sets(Fl_Widget*, void*){
+
+    char* msg = (char*) Text_input->value();
+  if(msg[0] != '\0'){
+    set_message(msg, (uint16_t) strlen(msg));
+  }
+
+  //added conversion due to warnings, TODO check if is bad
+  switch (Address_choice->value()){
+  case ADDRESS_FIRST_CHOICE:
+    set_destination((char*) ADDRESS_FIRST_VALUE);
+    break;
+  case ADDRESS_SECOND_CHOICE:
+    set_destination((char*) ADDRESS_SECOND_VALUE);
+    break;
+  case ADDRESS_THIRD_CHOICE:
+    set_destination((char*) ADDRESS_THIRD_VALUE);
+    break;
+  default:
+    break;
+  }
+
+  set_backoff((backoff_option) Backoff_choice->value());
+  
+  const char* time_str = Time_input->value();
+  if(time_str[0] != '\0'){
+    set_time((time_option) Time_type_choice->value(), (uint16_t) atoi(time_str));
+  }
+  
 }
 
 Fl_Menu_Item menutable[] = {
@@ -92,6 +146,7 @@ Fl_Menu_Item menutable[] = {
     {"set interval", 0,  0},
     {"Undo", 0, 0},
     {0},
+  {0}
 };
 
 /*
@@ -127,12 +182,15 @@ int main() {
 
     G_win = new Fl_Window(1000, 510, "App"); //; G_win->set_modal();
 
-    Fl_Menu_Bar menubar (0,0,1000,30); menubar.menu(menutable);
+    //Fl_Menu_Bar menubar (0,0,1000,30); menubar.menu(menutable);
 
-    char buffer[127];
+    char buff[127] = "Print values test";
 
     //test button
-    Fl_Return_Button* b = new Fl_Return_Button(20, 10, 160, 35, buffer); b->callback(call);
+    Fl_Return_Button* b = new Fl_Return_Button(600, 100, 160, 35, buff); b->callback(call);
+
+    Fl_Button* send = new Fl_Button(600, 300, 160, 35, "Send all data");
+    send->callback(send_all_data_sets);
 
     int y_measure = Y_START;
 
@@ -144,8 +202,9 @@ int main() {
     y_measure += 10;
 
     Time_type_choice = new Fl_Choice(X_START, y_measure, X_SIZE, Y_SIZE, "Interval type: ");
-    Time_type_choice->add("Gaussian", 0, NULL, (void*) 0);
-    Time_type_choice->add("Linear", 0, NULL, (void*) 1);
+    Time_type_choice->add("Gaussian", 0, NULL, (void*) LINEAR_TIME_INTERVAL);
+    Time_type_choice->add("Linear", 0, NULL, (void*) GAUSSIAN_TIME_INTERVAL);
+    Time_type_choice->value(0);
     y_measure += Y_SIZE + Y_SPACING; 
 
     Time_input = new Fl_Int_Input(X_START, y_measure, X_SIZE, Y_SIZE, "Time input");
@@ -158,6 +217,7 @@ int main() {
     Backoff_choice->add("Mild", 0, NULL, (void*) BACKOFF_MILD_CHOICE);
     Backoff_choice->add("No backoff", 0, NULL, (void*) BACKOFF_NONE_CHOICE);
     Backoff_choice->add("Linear backoff", 0, NULL, (void*) BACKOFF_LINEAR_CHOICE);
+    Backoff_choice->value(0);
     y_measure += Y_SIZE + Y_SPACING;
 
     
@@ -168,7 +228,8 @@ int main() {
     Address_choice->add("0X12_34_56_78_9A_BC", 0, NULL, (void*) BACKOFF_MILD_CHOICE);
     Address_choice->add("0XFF_FF_FF_FF_FF_FF", 0, NULL, (void*) BACKOFF_NONE_CHOICE);
     Address_choice->add("0XAA_AA_AA_AA_AA_AA", 0, NULL, (void*) BACKOFF_LINEAR_CHOICE);
-    y_measure += Y_SIZE + Y_SPACING; Address_choice->argument();
+    Address_choice->value(0);
+    y_measure += Y_SIZE + Y_SPACING;
     
 
     Text_input = new Fl_Input(X_START, y_measure, X_SIZE, Y_SIZE, "Message input");
