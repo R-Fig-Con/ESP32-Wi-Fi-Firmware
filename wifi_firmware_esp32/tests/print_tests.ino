@@ -85,7 +85,11 @@
  */
 enum test_choice{
     /**
-     * Simple hello world print from esp to computer
+     * Simple hello world print from esp to computer.
+     * 
+     * 
+     * included to have the most simple test for serial communication,
+     * something other tests rely on
      */
     ESP_SERIAL_COMMUNICATION = 1,
 
@@ -130,11 +134,8 @@ bool checkChannel(){
 
 /**
  * radio setup used in main code, not including interrupt setup or rx state set
- * 
- * test probably does not require the initialization be the same 
  */
 void radio_setup(){
-    //TODO could be changed
     radio.init();
     radio.setSyncWord(syncWord);
     radio.setCarrierFreq(CFREQ_433);
@@ -147,23 +148,36 @@ void radio_setup(){
 
 static char hello_world[] = "Hello World!";
 void hello_world_test(){
-    Serial.write(hello_world, strlen(hello_world)); //todo check
+    Serial.write(hello_world, strlen(hello_world)); //checked, note does not send \n
 }
 
 /**
  * to add more prints, decide if descriptive is kept
  *
- * TODO decides prints
+ * TODO decide if prints should include text besides measures
  */
 void radio_states_test(){
   radio_setup();
-  // Print some debug info
+
   Serial.print("CC1101_PARTNUM ");
-  Serial.println(radio.readReg(CC1101_PARTNUM, CC1101_STATUS_REGISTER));
+  Serial.println(radio.readReg(CC1101_PARTNUM, CC1101_STATUS_REGISTER)); // expects 0
   Serial.print("CC1101_VERSION ");
-  Serial.println(radio.readReg(CC1101_VERSION, CC1101_STATUS_REGISTER));
+  Serial.println(radio.readReg(CC1101_VERSION, CC1101_STATUS_REGISTER)); // expects 20
   Serial.print("CC1101_MARCSTATE ");
-  Serial.print(radio.readReg(CC1101_MARCSTATE, CC1101_STATUS_REGISTER) & 0x1f);
+  Serial.println(radio.readReg(CC1101_MARCSTATE, CC1101_STATUS_REGISTER) & 0x1f); // expects 1
+
+  Serial.print("CC1101_FREQ2 ");
+  Serial.println(radio.readReg(CC1101_FREQ2, CC1101_CONFIG_REGISTER)); // expects 16
+  Serial.print("CC1101_FREQ1 ");
+  Serial.println(radio.readReg(CC1101_FREQ1, CC1101_CONFIG_REGISTER)); // expects 167
+  Serial.print("CC1101_FREQ0 ");
+  Serial.println(radio.readReg(CC1101_FREQ0, CC1101_CONFIG_REGISTER)); // expects 98
+
+  radio.setRxState(); 
+  delay(10); // to ensure enough time for cmdStrobe to happen
+
+  Serial.print("CC1101_MARCSTATE ");
+  Serial.println(radio.readReg(CC1101_MARCSTATE, CC1101_STATUS_REGISTER) & 0x1f); // expects 13  
 }
 
 CCPACKET packet_to_send;
@@ -185,21 +199,28 @@ void sender_create_data_packet() {
 }
 
 /**
- * sends packet, waits for ack
- * 
- * TODO decide prints
+ * sends packet, waits for ack. Ack is not actually processed
 */
 void communication_sender_test(){
+  radio_setup();
   radio.sendData(packet_to_send);
   unsigned long wait_start = micros();
 
   attachInterrupt(CC1101_GDO0, messageReceived, RISING);
 
-  while(!packetWaiting); //todo check if it needs to call receive for ack
+  bool give_up = false;
 
-  //time marker missing
-  //Serial.printf("Initial sender; Took %lu microsseconds from packet send to answer, loop count %lu;\n", time_marker - wait_start, c);
-  //time_marker = 0;
+  while(!packetWaiting){
+    if(micros() - wait_start >= 4000){
+      give_up = true;
+      break;
+    }
+  }
+
+  if(!give_up){
+    unsigned long wait_end = micros();
+    Serial.printf("Sifs: %lu microsseconds\n", wait_end - wait_start); // expects about 2000? openhtf should include interval
+  }
 
   detachInterrupt(CC1101_GDO0);
 }
@@ -208,17 +229,21 @@ void communication_sender_test(){
 /**
  * waits for data, sends ack
  * 
- * TODO decides prints
+ * Prints confirm payload of data, crc not ok message
 */
 void communication_receiver_test(){
+  radio_setup();
   attachInterrupt(CC1101_GDO0, messageReceived, RISING);
   radio.setRxState();
 
   while(!packetWaiting);
-  receiver();
+  if(receiver()){
+    radio.sendData(answer_packet);
+    Serial.print((char*) receiveFrame->payload);
+  } else{
+    Serial.println("Crc not ok");
+  }
 
-  radio.sendData(answer_packet);
-  
 }
 
 /**
@@ -234,23 +259,22 @@ void setup() {
     //answer packet definition
     answer_packet.length = sizeof(ieeeFrame);
 
-    sender_create_data_packet(); //should be fine to put it here
-
-    /*
-      attachInterrupt(CC1101_GDO0, messageReceived, RISING);
-
-      radio.setRxState();
-    */
+    //put it here assuming it will not be changed afterwards
+    sender_create_data_packet(); 
     
     
 }
 
-char read_buffer[100];
+char read_buffer[7];
 void loop(){
 
-  size_t num_read = Serial.read(read_buffer, 100);
 
-  Serial.printf("Read %u bytes; content: %s\n", num_read, read_buffer);
+  while (Serial.available() == 0);
+  int read = Serial.readBytes(read_buffer, 6);
+  read_buffer[read] = '\0';
+
+  //Serial.printf("Read value; value in char: %c; value in int: %d\n", (char) read, read);
+  //Serial.printf("Buffer read: %s\n", read_buffer);
 
   switch(atoi(read_buffer)){
     case ESP_SERIAL_COMMUNICATION:
@@ -273,8 +297,8 @@ void loop(){
 }
 
 /**
- * Directly affects 'packet_to_receive' global var, implements NAV
- * returns true if crc is ok and dest is self else returns false and waits nav if needed
+ * Directly affects 'packet_to_receive' global var
+ * returns crc_ok
  */
 bool receiver() {
 
@@ -283,8 +307,6 @@ bool receiver() {
 
   // Try to receive the packet
   radio.receiveData(&packet_to_receive);
-  
-  //only necessary if is handled by traffic task; probably shoul be placed somewhere else; TODO
   packetWaiting = false;
 
   if(packet_to_receive.crc_ok == false){
