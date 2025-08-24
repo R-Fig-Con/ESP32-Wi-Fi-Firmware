@@ -1,8 +1,8 @@
 #include <arpa/inet.h> //uint16_t, unit_32t
 
 
-#define RETURN_SUCCESS 0
-#define RETURN_ESP_ERROR 1
+#define RETURN_SUCCESS 1
+#define RETURN_ESP_ERROR 0
 
 #define MAC_ADDRESS_SIZE 6
 

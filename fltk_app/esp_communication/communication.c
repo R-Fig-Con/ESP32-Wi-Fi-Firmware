@@ -37,6 +37,7 @@ static int receive_response(){
     int bytes_read = read(sockfd, communication_buffer, MAX_MESSAGE_SIZE - 1);
     if(communication_buffer[0] != RETURN_SUCCESS){
         communication_buffer[bytes_read] = '\0';
+        printf("Error received from esp: %s\n", communication_buffer);
         return RETURN_ESP_ERROR;
     }
 
@@ -51,7 +52,7 @@ int connection_start(){
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == -1) {
         perror("Could not create socket.");
-        return 0;
+        return RETURN_ESP_ERROR;
     }
 
     // Set the socket address structure
@@ -62,10 +63,10 @@ int connection_start(){
     int error = inet_pton(AF_INET, ESP_IP, &addr.sin_addr);
     if (error == 0) {
         perror("Invalid network address.");
-        return 0;
+        return RETURN_ESP_ERROR;
     } else if (error == -1){
         perror("Invalid address family.");
-        return 0;
+        return RETURN_ESP_ERROR;
     }
 
     printf("Connecting...\n");
@@ -74,10 +75,10 @@ int connection_start(){
     error = connect(sockfd, (struct sockaddr *)&addr, sizeof(addr));
     if ( error == -1) {
         perror("Connection Failed");
-        return 0;
+        return RETURN_ESP_ERROR;
     }
 
-    return 1;
+    return RETURN_SUCCESS;
 }
 
 
