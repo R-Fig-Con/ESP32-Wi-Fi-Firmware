@@ -269,12 +269,16 @@ void wifi_handle_backoff(WiFiClient* client, uint8_t* buffer, uint16_t len){
     if( len != sizeof(char) ){
         rsp[0] = ESP_RESP_ERROR;
         client->write( rsp, strlen(rsp) );
+        //Serial.printf("Received message with length %l, expected onw with size 1\n", len);
+        return;
     }
 
     char protocol_char = buffer[0];
 
     macProtocolParameters backoff_parameter; 
     backoff_parameter.csma_contrl_params.used = true;
+
+    //Serial.printf("Received char %c\n", protocol_char);
 
     switch (protocol_char){
         case 'm':
@@ -290,6 +294,7 @@ void wifi_handle_backoff(WiFiClient* client, uint8_t* buffer, uint16_t len){
             break;
         
         default:
+            //Serial.printf("received char %c, not recognized\n");
             char protocol_not_recognized_rsp[] = ".Protocol given not recognized";
             protocol_not_recognized_rsp[0] = ESP_RESP_ERROR;
             client->write(protocol_not_recognized_rsp, strlen(protocol_not_recognized_rsp));
@@ -297,6 +302,7 @@ void wifi_handle_backoff(WiFiClient* client, uint8_t* buffer, uint16_t len){
     }
 
     xQueueSend(protocolParametersQueueHandle, &backoff_parameter, portMAX_DELAY);
+    //Serial.println("Sent backoff parameters");
 
     rsp[0] = ESP_RESP_OK;
     client->write( rsp, 1 );
