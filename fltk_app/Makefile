@@ -1,18 +1,21 @@
 include Makefile.FLTK
 
 BIN_DIR := bin
+LIB_DIRS := esp_communication
 SRC := app.cxx
 TARGET := ${BIN_DIR}/app
 
 
-# Will always recreate
-${TARGET}: esp_communication/communication.o utils.c bin
+${TARGET}: $(LIB_DIRS) utils.o bin
 	$(CXX) $(CXXFLAGS) -o ${TARGET} app.cxx $(LINKFLTK) esp_communication/communication.o utils.o
 
-esp_communication/communication.o:
-	make -C esp_communication
+#needs to be phony to force recreation of all, including test
+#TODO change if new rule structure for tests is implemented
+.PHONY: $(LIB_DIRS)
+$(LIB_DIRS):
+	$(MAKE) -C $(LIB_DIRS)
 
-utils.c:
+utils.o:
 	$(CXX) -c utils.cxx $(CXXFLAGS)
 
 app.o:
@@ -24,3 +27,4 @@ bin:
 .PHONY: clean	
 clean:
 	make clean -C esp_communication
+	rm -f *.o

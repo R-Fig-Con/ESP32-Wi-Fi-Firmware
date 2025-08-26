@@ -96,11 +96,16 @@ void fltk_set_destination(){
 }
 
 void fltk_set_message(){
-    char* msg = (char*) Text_input->value();
-    if(msg[0] != '\0'){
-        if(!set_message(msg, (uint16_t) strlen(msg))) 
-            throw std::invalid_argument {"Exception generated"};
+    char* read = (char*) Text_input->value();
+    size_t size = strlen(read);
+
+    if (size == 0){
+      return;
     }
+    
+    if(!set_message(read, (uint16_t) size))
+      throw std::invalid_argument {"Exception generated"};
+    
 }
 
 void fltk_set_backoff(){
