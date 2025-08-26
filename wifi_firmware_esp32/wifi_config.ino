@@ -147,8 +147,11 @@ void wifi_handle_status(WiFiClient* client, uint8_t* buffer, uint16_t len){
 void wifi_handle_message(WiFiClient* client, uint8_t* buffer, uint16_t len){
     char rsp[] = ".Error setting message.";
     if( len < 1 ){
+        Serial.printf("Error setting message, length too small (length of %u)\n", len);
+        Serial.printf("Message received: %s\n", buffer);
         rsp[0] = ESP_RESP_ERROR;
         client->write( rsp, strlen(rsp) );
+        return;
     }
 
     PRINT("Len: ");
@@ -194,6 +197,7 @@ void wifi_handle_time(WiFiClient* client, uint8_t* buffer, uint16_t len){
     char rsp_type[] = ".Invalid interval type.";
     char type = buffer[0];
     if( type != 'c' && type != 'g' ){
+        Serial.println("Error time set; Invalid type");
         rsp_type[0] = ESP_RESP_ERROR;
         client->write( rsp_type, strlen(rsp_type) );
         return;
@@ -201,6 +205,7 @@ void wifi_handle_time(WiFiClient* client, uint8_t* buffer, uint16_t len){
 
     char rsp[] = ".Invalid time";
     if( len-1 != 2 ){
+        Serial.println("Error time set; Invalid length?");
         rsp[0] = ESP_RESP_ERROR;
         client->write( rsp, strlen(rsp) );
         return;
@@ -222,6 +227,7 @@ void wifi_handle_time(WiFiClient* client, uint8_t* buffer, uint16_t len){
     }
 
     if( time < 50 ){
+        Serial.println("Error time set; too small");
         rsp[0] = ESP_RESP_ERROR;
         client->write( rsp, strlen(rsp) );
         return;
@@ -244,8 +250,10 @@ void wifi_handle_time(WiFiClient* client, uint8_t* buffer, uint16_t len){
 void wifi_handle_destination(WiFiClient* client, uint8_t* buffer, uint16_t len){
     char rsp[] = ".Wrong length for MAC address.";
     if( len != MAC_ADDRESS_SIZE ){
+        Serial.println("Address error; wrong size");
         rsp[0] = ESP_RESP_ERROR;
         client->write( rsp, strlen(rsp) );
+        return;
     }
 
     PRINT("New Dest: ");
@@ -269,7 +277,7 @@ void wifi_handle_backoff(WiFiClient* client, uint8_t* buffer, uint16_t len){
     if( len != sizeof(char) ){
         rsp[0] = ESP_RESP_ERROR;
         client->write( rsp, strlen(rsp) );
-        //Serial.printf("Received message with length %l, expected onw with size 1\n", len);
+        Serial.printf("Backoff error; received message with length %l, expected onw with size 1\n", len);
         return;
     }
 
@@ -277,8 +285,6 @@ void wifi_handle_backoff(WiFiClient* client, uint8_t* buffer, uint16_t len){
 
     macProtocolParameters backoff_parameter; 
     backoff_parameter.csma_contrl_params.used = true;
-
-    //Serial.printf("Received char %c\n", protocol_char);
 
     switch (protocol_char){
         case 'm':
@@ -294,7 +300,7 @@ void wifi_handle_backoff(WiFiClient* client, uint8_t* buffer, uint16_t len){
             break;
         
         default:
-            //Serial.printf("received char %c, not recognized\n");
+            Serial.printf("Backoff error; received char %c, not recognized\n");
             char protocol_not_recognized_rsp[] = ".Protocol given not recognized";
             protocol_not_recognized_rsp[0] = ESP_RESP_ERROR;
             client->write(protocol_not_recognized_rsp, strlen(protocol_not_recognized_rsp));
@@ -302,7 +308,7 @@ void wifi_handle_backoff(WiFiClient* client, uint8_t* buffer, uint16_t len){
     }
 
     xQueueSend(protocolParametersQueueHandle, &backoff_parameter, portMAX_DELAY);
-    //Serial.println("Sent backoff parameters");
+    Serial.println("Sent backoff parameters");
 
     rsp[0] = ESP_RESP_OK;
     client->write( rsp, 1 );
