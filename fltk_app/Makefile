@@ -9,6 +9,8 @@ TARGET := ${BIN_DIR}/app
 ${TARGET}: $(LIB_DIRS) utils.o bin
 	$(CXX) $(CXXFLAGS) -o ${TARGET} app.cxx $(LINKFLTK) esp_communication/communication.o utils.o
 
+#needs to be phony to force recreation of all, including test
+#TODO change if new rule structure for tests is implemented
 .PHONY: $(LIB_DIRS)
 $(LIB_DIRS):
 	$(MAKE) -C $(LIB_DIRS)

@@ -120,8 +120,9 @@ int set_destination(char address[MAC_ADDRESS_SIZE]){
 }
 
 int set_message(char* data, uint16_t length){
-    // Just "strlen(buffer)" is undefined behaviour because the first bytes have not been set and might be '\0'
-    uint16_t len = strlen(communication_buffer + CONTROL_BYTES_SIZE);
+    printf("set message; length: %d\n", length);
+
+    uint16_t len = length;
     len = set_control_bytes(len, MESSAGE_OPT_CODE);
 
     memcpy(communication_buffer + CONTROL_BYTES_SIZE, data, length);

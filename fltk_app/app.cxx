@@ -66,11 +66,19 @@ void send_all_data_sets(Fl_Widget*, void*){
 
   fltk_set_message();
   
+  printf("After set message\n");
+
   fltk_set_destination();
+
+  printf("After set destination\n");
   
   fltk_set_backoff();
 
+  printf("After set Backoff\n");
+
   fltk_set_time();
+
+  printf("After set time;\nDONE\n\n");
   
 }
 
