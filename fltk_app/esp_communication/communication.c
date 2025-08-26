@@ -15,6 +15,9 @@
 #define DEST_OPT_CODE 'd'
 #define BACKOFF_PROTOCOL_OPT_CODE 'b'
 
+#define ESP_RESP_OK (char)0x0
+#define ESP_RESP_ERROR (char)0x1
+
 #define CONTROL_BYTES_SIZE 3
 
 static int sockfd;
@@ -35,9 +38,9 @@ static uint16_t set_control_bytes(uint16_t len, char opt_code){
 static int receive_response(){
     // Receive response
     int bytes_read = read(sockfd, communication_buffer, MAX_MESSAGE_SIZE - 1);
-    if(communication_buffer[0] != RETURN_SUCCESS){
+    if(communication_buffer[0] == ESP_RESP_ERROR){
         communication_buffer[bytes_read] = '\0';
-        printf("Error received from esp: %s\n", communication_buffer);
+        printf("Error of length %d, first char %c; received from esp: %s\n",  bytes_read, communication_buffer[0], communication_buffer);
         return RETURN_ESP_ERROR;
     }
 
@@ -143,6 +146,8 @@ int set_backoff(backoff_option option){
     
     char backoff_option;
 
+    printf("Chosen backoff %d\n", option);
+
     switch (option){
     case NONE:
         backoff_option = 'n';
@@ -161,6 +166,12 @@ int set_backoff(backoff_option option){
     }
 
     communication_buffer[CONTROL_BYTES_SIZE] = backoff_option;
+
+    printf("Buffer print: %c; %c; %c; %c\n",
+         communication_buffer[0], 
+         communication_buffer[1], 
+         communication_buffer[2],
+         communication_buffer[3]);
 
     // Send message
     send(sockfd, communication_buffer, len, 0);

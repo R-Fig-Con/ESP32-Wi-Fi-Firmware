@@ -130,9 +130,9 @@ int main() {
   time_group->end(); // needed
 
   Backoff_choice = new Fl_Choice(X_START, y_measure, X_SIZE, Y_SIZE, "Backoff: ");
+  Backoff_choice->add("Linear backoff", 0, NULL, (void*) BACKOFF_LINEAR_CHOICE);
   Backoff_choice->add("Mild", 0, NULL, (void*) BACKOFF_MILD_CHOICE);
   Backoff_choice->add("No backoff", 0, NULL, (void*) BACKOFF_NONE_CHOICE);
-  Backoff_choice->add("Linear backoff", 0, NULL, (void*) BACKOFF_LINEAR_CHOICE);
   Backoff_choice->value(0);
   y_measure += Y_SIZE + Y_SPACING;
 
