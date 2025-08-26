@@ -6,10 +6,10 @@ SRC := app.cxx
 TARGET := ${BIN_DIR}/app
 
 
-# Will always recreate
 ${TARGET}: $(LIB_DIRS) utils.o bin
 	$(CXX) $(CXXFLAGS) -o ${TARGET} app.cxx $(LINKFLTK) esp_communication/communication.o utils.o
 
+.PHONY: $(LIB_DIRS)
 $(LIB_DIRS):
 	$(MAKE) -C $(LIB_DIRS)
 
@@ -25,3 +25,4 @@ bin:
 .PHONY: clean	
 clean:
 	make clean -C esp_communication
+	rm -f *.o
