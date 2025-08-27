@@ -8,6 +8,7 @@
 #include "src/wifi_config/wifi_config.h"
 #include "src/param_data/param_data.h"
 #include "src/mac_data/mac_data.h"
+#include "src/utils/utils.h"
 
 #define CCA_FROM_GDO2_PIN "Irrelevant value"
 
@@ -51,31 +52,16 @@
 */
 #define DEFAULT_FRAME_CONTENT_SIZE 1000
 
-/*
- * Array value declaration. Ensure array is big enough for MAC address
-*/
-//#define DEFAULT_MAC_ADDRESS {0x4C, 0x11, 0xAE, 0x64, 0xD1, 0x8D}
-
-//#define DEFAULT_MAC_ADDRESS {0xBC, 0xDD, 0xC2, 0xCC, 0x3B, 0x31}
-
 #define DEFAULT_MAC_ADDRESS {0x1C, 0x69, 0x20, 0x30, 0xDF, 0x41}
 
 
 #define DEFAULT_TIME_INTERVAL_MODE TRF_GEN_GAUSS
 
-#define DEFAULT_TIME_INTERVAL 0
-
-CC1101 radio;
+#define DEFAULT_TIME_INTERVAL 5000
 
 byte syncWord[2] = {199, 10};
 volatile bool packetWaiting;
 
-uint8_t myMacAddress[MAC_ADDRESS_SIZE];
-
-// Packet and frame used by the sender.
-TRAFFIC_GEN * trf_gen;
-
-CSMA_CONTROL * csma_control;
 
 /*
  * indicates to the code if packet should use automatic response or if is expecting data and code will linearly deal with it
@@ -93,16 +79,6 @@ void messageReceived() {
 }
 
 /**
- * no setup needed, exists to be modified when receiving
-*/
-CCPACKET packet_to_receive;
-ieeeFrame * receiveFrame = (ieeeFrame *) packet_to_receive.data;
-
-//can be either cts or ack
-CCPACKET answer_packet; 
-ieeeFrame * answerFrame = (ieeeFrame *) answer_packet.data;
-
-/**
  * Checks if destintation of message is for the node. Assumes read packet is packet_to_receive
  * 
  * Return true if dest is for the node, false oterwise
@@ -114,69 +90,6 @@ bool destIsMe(){
       }
     }
   return true;
-}
-
-/**
- * Task will handle any communication started by another party
- * 
- * Is able to answer either to rts or data packets
- */
-void receiveAndAnswerTask(void* unused_param){
-
-  while(true){
-
-    vTaskSuspend(NULL);  //suspend self; done on activation and after each receive
-
-    if(!receiver()){
-      continue;
-    }
-    
-    PRINT("DST: ");
-    PRINTLN_MAC(receiveFrame->addr_dest);
-
-    //Set destination address
-    memcpy( answerFrame->addr_dest, receiveFrame->addr_src, MAC_ADDRESS_SIZE );
-
-    //PRINTLN("Received frame on response task");
-    
-    if(PACKET_IS_DATA(receiveFrame)){
-      detachInterrupt(CC1101_GDO0);
-
-      PACKET_TO_ACK(answerFrame);
-      answerFrame->duration = 0; // no more to send after this, since fragmentation is not supported
-      //Warning; This really counts on the packet sent not being interrupted, and therefore causing its failure
-      //Creating prints in this step to check if the packet was sent or not should not cause any grand issues during testing;
-      if(!radio.sendData(answer_packet)){
-        PRINTLN("Response failed, assumed task was interrupted");
-      }
-
-      attachInterrupt(CC1101_GDO0, messageReceived, RISING);
-
-
-      PRINTLN("SENT ACK");
-    }
-    else if (PACKET_IS_RTS(receiveFrame)){
-      detachInterrupt(CC1101_GDO0);
-
-      PACKET_TO_CTS(answerFrame);
-      answerFrame->duration = receiveFrame->duration - SIFS - radio.transmittionTime(packet_to_receive); 
-      //Warning; This really counts on the packet sent not being interrupted, and therefore causing its failure
-      //Creating prints in this step to check if the packet was sent or not should not cause any grand issues during testing;
-      if(!radio.sendData(answer_packet)){
-        PRINTLN("Response failed, assumed task was interrupted");
-      }
-
-      attachInterrupt(CC1101_GDO0, messageReceived, RISING);
-
-      PRINTLN("SENT CTS");
-    }
-    else{
-      PRINT("Response task, frame control not recognized, with value: ");
-      PRINTLN_VALUE(receiveFrame->frame_control[0]);
-    }
-
-  }
-      
 }
 
 bool checkChannel(){  
@@ -203,99 +116,6 @@ uint16_t durationCalculation(unsigned short data_length){
 uint16_t dataDurationCalculation(){
   return radio.transmittionTime(answer_packet) + SIFS; // 1 SIFS + ack time
 }
-
-/**
- * probably not a good idea to use either receive/answer variable packets due to misuse could cause
- * packet change from interruption, but could be done
-*/
-CCPACKET rts_packet;
-ieeeFrame * rtsFrame = (ieeeFrame *) rts_packet.data;
-
-/**
- * semaphore used either to gain access to radio mac protocol
- * wether to read or write
-*/
-SemaphoreHandle_t xSemaphore = xSemaphoreCreateMutex();
-
-/**
- * Task to change parameters of protocol, running on the same core to ensure cache is correct
- * 
- * Not responsible of collecting parameters, receives them
- *
- * Task continuously receives parameters from queue
-*/
-void changeParametersTask(void* unusedParam){
-
-  //Implementing queue solution for now
-
-  PRINTLN("Created change parameters task");
-
-  uint8_t params_buffer[sizeof(macProtocolParameters)];
-
-  macProtocolParameters *params = (macProtocolParameters*) params_buffer;
-
-  while(true){
-
-    /**
-     * check if portMAX_DELAY wait is forever
-    */
-    if(xQueueReceive(protocolParametersQueueHandle, params_buffer, portMAX_DELAY) == pdFALSE){
-      continue;
-    }
-
-#ifdef ANSWER_TASK_CHANGES_WITH_PARAMETERS
-    radio.setIdleState(); // to avoid rx overflow
-    PRINTLN("Set to idle state, avoiding answer task being activated");
-#endif
-
-    xSemaphoreTake(xSemaphore, portMAX_DELAY);
-    PRINTLN("\n\nCHANGE PARAMETERS GOT EXCLUSIVITY\n\n");
-
-    mac_data.retries = 0; mac_data.failures = 0; mac_data.successes = 0; mac_data.startTime = millis();
-
-    if(params->csma_contrl_params.used){
-      delete csma_control;
-      csma_control = new CSMA_CONTROL(&checkChannel, getBackoffProtocol(params->csma_contrl_params.backoff_protocol));
-    }
-
-
-    if(params->traf_gen_time.used){
-      trf_gen->setTime(params->traf_gen_time.time_mode, params->traf_gen_time.waiting_time);
-    }
-
-    if(params->traf_gen_addr.used){
-      PRINT("CHANGE PARAMS TASK NEW DEST MAC: "); PRINTLN_MAC(params->traf_gen_addr.address);
-      trf_gen->setDestAddress(params->traf_gen_addr.address);
-      memcpy(rtsFrame->addr_dest, params->traf_gen_addr.address, MAC_ADDRESS_SIZE);
-    }
-
-    if(params->traf_gen_data.used){
-      Serial.println("Changing message");
-
-      rtsFrame->duration = durationCalculation(params->traf_gen_data.message_length);
-      trf_gen->setMessage(
-        params->traf_gen_data.message, 
-        params->traf_gen_data.message_length
-      );
-
-      //TODO find better solution than malloc and free if possible
-      free(params->traf_gen_data.message);
-      
-    }
-
-#ifdef ANSWER_TASK_CHANGES_WITH_PARAMETERS
-    radio.setRxState();
-    PRINTLN("On rx state, allowing answer task activating");
-#endif
-
-    xSemaphoreGive(xSemaphore);
-    PRINTLN("CHANGED, delay\n");
-
-  }
-
-}
-
-
 
 void setup() {
 
@@ -368,9 +188,6 @@ void setup() {
 
     trf_gen = new TRAFFIC_GEN(&sender, myMacAddress, dstMacAddress, dataDurationCalculation(), sizeof(ieeeFrame) + DEFAULT_FRAME_CONTENT_SIZE);
     trf_gen->setTime(DEFAULT_TIME_INTERVAL_MODE, DEFAULT_TIME_INTERVAL);
-
-    //char def_msg[] = "Default Message";
-    //trf_gen->setMessage(def_msg, strlen(def_msg));
     
     
     xTaskCreatePinnedToCore(
@@ -476,6 +293,8 @@ void sender(CCPACKET packet_to_send) {
 
   }
 
+  packetWaiting = false;
+
   //checks if is ok and is an ack ack
   if(receiver() && !PACKET_IS_CTS(receiveFrame)){
     PRINTLN("answer NOT a CTS");
@@ -505,6 +324,8 @@ void sender(CCPACKET packet_to_send) {
     }
 
   }
+
+  packetWaiting = false;
 
   automaticResponse = true;
   
@@ -537,9 +358,6 @@ bool receiver() {
 
   // Try to receive the packet
   radio.receiveData(&packet_to_receive);
-  
-  //only necessary if is handled by traffic task; probably shoul be placed somewhere else; TODO
-  packetWaiting = false;
 
   if(packet_to_receive.crc_ok == false){
     return false;
