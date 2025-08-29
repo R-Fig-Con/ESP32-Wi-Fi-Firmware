@@ -1,7 +1,7 @@
-TRAFFIC_GEN::TRAFFIC_GEN(void (* sendDataF)(CCPACKET), uint8_t my_addr[6], uint8_t destination_addr[6], uint16_t duration, uint16_t data_length){
+TRAFFIC_GEN::TRAFFIC_GEN(SEND_PROTOCOL* protocol, uint8_t my_addr[6], uint8_t destination_addr[6], uint16_t duration, uint16_t data_length){
 
     this->running = false;
-    this->sendData = sendDataF;
+    this->send_protocol = protocol;
     
     ieeeFrame * trf_frame = (ieeeFrame *) this->packet.data;
     PACKET_TO_DATA(trf_frame);
@@ -30,10 +30,10 @@ TRAFFIC_GEN::TRAFFIC_GEN(void (* sendDataF)(CCPACKET), uint8_t my_addr[6], uint8
    this->packet.length = data_length + sizeof(ieeeFrame);
 }
 
-TRAFFIC_GEN::TRAFFIC_GEN(void (* sendDataF)(CCPACKET), uint8_t my_addr[6], uint8_t destination_addr[6], uint16_t duration, uint16_t message_length, char* message){
+TRAFFIC_GEN::TRAFFIC_GEN(SEND_PROTOCOL* protocol, uint8_t my_addr[6], uint8_t destination_addr[6], uint16_t duration, uint16_t message_length, char* message){
 
     this->running = false;
-    this->sendData = sendDataF;
+    this->send_protocol = send_protocol;
     
     ieeeFrame * trf_frame = (ieeeFrame *) this->packet.data;
     PACKET_TO_DATA(trf_frame);
@@ -64,7 +64,7 @@ bool TRAFFIC_GEN::init() {
 
         delay(time_to_next);
 
-        this->sendData(this->packet);
+        this->send_protocol->send_data(this->packet);
     }
     
     return true;

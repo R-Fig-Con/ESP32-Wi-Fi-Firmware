@@ -15,6 +15,10 @@ computers would require uploading each executable to the MCU, a single
 main file with the ability to choose the test through serial communication
 was created.
 
+Note: added mklink /J src ..\src for copy of header folder; mklink cc1101_driver.ino ..\cc1101_driver.ino
+for copy of radio implementation. Folder seems to be hard copied in git, to find a variation of command
+that does not do such a thing or leave in this readme instructions for testers
+
 ## Openhtf (TODO)
 
 To create Openhtf pyhon scripts for each test in the .ino

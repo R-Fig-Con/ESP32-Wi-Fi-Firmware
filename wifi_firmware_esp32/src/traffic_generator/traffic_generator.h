@@ -1,3 +1,5 @@
+#include "./send_protocol.h"
+
 /**
  * Module to generate packet traffic
  */
@@ -85,10 +87,7 @@ class TRAFFIC_GEN
      */
     bool running;
 
-    /**
-     * Function to be called to send a packet.
-     */
-    void (*sendData)(CCPACKET);
+    SEND_PROTOCOL* send_protocol;
 
     /**
     * setTime
@@ -106,7 +105,7 @@ class TRAFFIC_GEN
      *
      * Sets up the module and all it's fields. Should set a deault value for message.
      *
-     * @param 'sendDataF' is the function that will be used to send the packet.
+     * @param 'protocol' class with send protocol
      *
      * @param 'my_addr' is the mac address of the sender.
      *
@@ -116,14 +115,14 @@ class TRAFFIC_GEN
      * 
      * @param 'data_length' length of data. Should contain size for ieeeFrame fields
      */
-    TRAFFIC_GEN(void (* sendDataF)(CCPACKET), uint8_t my_addr[MAC_ADDRESS_SIZE], uint8_t destination_addr[MAC_ADDRESS_SIZE], uint16_t duration, uint16_t data_length);
+    TRAFFIC_GEN(SEND_PROTOCOL* protocol, uint8_t my_addr[MAC_ADDRESS_SIZE], uint8_t destination_addr[MAC_ADDRESS_SIZE], uint16_t duration, uint16_t data_length);
 
     /**
      * Constructor
      *
      * Specifies the specific message desired
      *
-     * @param 'sendDataF' is the function that will be used to send the packet.
+     * @param 'protocol' is the function that will be used to send the packet.
      *
      * @param 'my_addr' is the mac address of the sender.
      *
@@ -135,7 +134,7 @@ class TRAFFIC_GEN
      * 
      * @param 'message' pointer to message
      */
-    TRAFFIC_GEN(void (* sendDataF)(CCPACKET), uint8_t my_addr[MAC_ADDRESS_SIZE], uint8_t destination_addr[MAC_ADDRESS_SIZE], uint16_t duration, uint16_t data_length, char* message);
+    TRAFFIC_GEN(SEND_PROTOCOL* protocol, uint8_t my_addr[MAC_ADDRESS_SIZE], uint8_t destination_addr[MAC_ADDRESS_SIZE], uint16_t duration, uint16_t data_length, char* message);
 
     /**
      * init

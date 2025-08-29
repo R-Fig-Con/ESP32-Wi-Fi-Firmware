@@ -19,6 +19,11 @@
 
 #define ANSWER_TASK_PRIORITY 10
 #define TRAFFIC_GENERATOR_PRIORITY 5
+
+/**
+ * Note (27 august) with current traffic generator, if delay value is 0 parameter
+ * change task will not run when its priority is lower than the generator's
+ */
 #define PARAMETER_CHANGE_PRIORITY 6
 /**
  * If not 0 watchdog from core 0 is activated, since it contains blocking function
@@ -60,21 +65,14 @@
 #define DEFAULT_TIME_INTERVAL 5000
 
 byte syncWord[2] = {199, 10};
-volatile bool packetWaiting;
-
-
-/*
- * indicates to the code if packet should use automatic response or if is expecting data and code will linearly deal with it
-*/
-bool automaticResponse = true;
 
 TaskHandle_t receiveHandle = NULL;
 void messageReceived() {
-  if (automaticResponse){
+  if (send_protocol->give_automatic_response()){
     portYIELD_FROM_ISR(xTaskResumeFromISR(receiveHandle));
   }
   else{
-    packetWaiting = true;//self started communication; should be an answer, and code should be able to answer linearly
+    send_protocol->set_packet_flag();
   }
 }
 
@@ -150,7 +148,9 @@ void setup() {
     PRINT("CC1101_MARCSTATE ");
     PRINTLN_VALUE(radio.readReg(CC1101_MARCSTATE, CC1101_STATUS_REGISTER) & 0x1f);
 
-    PRINTLN_VALUE("CC1101 radio initialized.");   
+    PRINTLN_VALUE("CC1101 radio initialized.");
+    
+    send_protocol = new CSMA_CA();
 
 
     uint32_t mac_num = ((uint32_t)myMacAddress[2] << 24) | ((uint32_t)myMacAddress[3] << 16) |
@@ -186,7 +186,7 @@ void setup() {
     uint8_t dstMacAddress[6] = DEFAULT_MAC_ADDRESS;
     memcpy(rtsFrame->addr_dest, dstMacAddress, MAC_ADDRESS_SIZE);
 
-    trf_gen = new TRAFFIC_GEN(&sender, myMacAddress, dstMacAddress, dataDurationCalculation(), sizeof(ieeeFrame) + DEFAULT_FRAME_CONTENT_SIZE);
+    trf_gen = new TRAFFIC_GEN(send_protocol, myMacAddress, dstMacAddress, dataDurationCalculation(), sizeof(ieeeFrame) + DEFAULT_FRAME_CONTENT_SIZE);
     trf_gen->setTime(DEFAULT_TIME_INTERVAL_MODE, DEFAULT_TIME_INTERVAL);
     
     
@@ -210,9 +210,6 @@ void setup() {
       1 //putting related to cc1101 on same core
     );
     
-    
-  
-
     mac_data.startTime = millis();
 
     attachInterrupt(CC1101_GDO0, messageReceived, RISING);
@@ -243,108 +240,6 @@ void loop(){
         );
     }
 
-}
-
-/**
- * requires radio initialization, csma control instance, receive task creation
- * Contains retry logic for now at least
- */
-void sender(CCPACKET packet_to_send) { 
-
-  PRINTLN("TO SEND");
-
-  uint8_t retryCount = 0;
-
-  unsigned long start_time; //used for both rts and data wait
-
-  xSemaphoreTake(xSemaphore, portMAX_DELAY);
-  //Label
-  send:
-
-  //should be able to answer while waiting for turn, so it cannot be deactivated
-
-  if(retryCount == 10){
-    PRINTLN("GIVING UP after retry limit reached");
-    xSemaphoreGive(xSemaphore);
-    mac_data.failures += 1;
-    return;
-  }
-  //PRINTLN_VALUE(radio.readStatusReg(CC1101_MARCSTATE));
-  csma_control->waitForTurn();
-
-  ///*
-  detachInterrupt(CC1101_GDO0);
-  radio.sendData(rts_packet);
-  attachInterrupt(CC1101_GDO0, messageReceived, RISING);
-
-  automaticResponse = false;
-
-  start_time = micros();
-
-  while(!packetWaiting){
-    //sifs wait
-    if(micros() - start_time >= SIFS){
-      PRINTLN("WAIT FOR CTS FAILED");
-      retryCount += 1; mac_data.retries += 1;
-      automaticResponse = true;
-      csma_control->ackReceived(false);
-      goto send;
-    }
-
-  }
-
-  packetWaiting = false;
-
-  //checks if is ok and is an ack ack
-  if(receiver() && !PACKET_IS_CTS(receiveFrame)){
-    PRINTLN("answer NOT a CTS");
-    retryCount += 1; mac_data.retries += 1;
-    csma_control->ackReceived(false);
-    goto send;
-    
-  }
-
-  //*/
-
-  detachInterrupt(CC1101_GDO0);
-  radio.sendData(packet_to_send);
-  attachInterrupt(CC1101_GDO0, messageReceived, RISING);
-
-  automaticResponse = false;
-  start_time = micros();
-
-  while(!packetWaiting){
-    //sifs wait
-    if(micros() - start_time >= SIFS){
-      PRINTLN("No ack");
-      retryCount += 1; mac_data.retries += 1;
-      automaticResponse = true;
-      csma_control->ackReceived(false);
-      goto send;
-    }
-
-  }
-
-  packetWaiting = false;
-
-  automaticResponse = true;
-  
-  //checks if is ok and is an ack ack
-  if(receiver() && !PACKET_IS_ACK(receiveFrame)){
-    PRINTLN("answer is NOT an ACK");
-    retryCount += 1; mac_data.retries += 1;
-    csma_control->ackReceived(false);
-    goto send;
-    
-  }
-
-  
-  csma_control->ackReceived(true);
-
-  xSemaphoreGive(xSemaphore);
-  mac_data.successes += 1;
-
-  PRINTLN("Complete success");
 }
 
 /**

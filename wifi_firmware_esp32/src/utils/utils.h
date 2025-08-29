@@ -6,6 +6,8 @@ TRAFFIC_GEN * trf_gen;
 
 CSMA_CONTROL * csma_control;
 
+SEND_PROTOCOL * send_protocol;
+
 /**
  * no setup needed, exists to be modified when receiving
 */
