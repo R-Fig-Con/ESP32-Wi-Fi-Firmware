@@ -7,13 +7,13 @@
 class SEND_PROTOCOL{
 
     protected:
-        volatile bool packetWaiting;// = false;
+        volatile bool packetWaiting = false;
 
         /**
          * indicates to the code if packet should use automatic response
          * or if is expecting data and code will linearly deal with it
         */
-        bool automaticResponse;//  = true;
+        bool automaticResponse = true;
 
     public:
         virtual void send_data(CCPACKET packet_to_send);
