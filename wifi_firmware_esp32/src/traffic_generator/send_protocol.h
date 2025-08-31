@@ -22,8 +22,8 @@ class SEND_PROTOCOL{
             return automaticResponse;
         }
 
-        bool set_packet_flag(){
-            return packetWaiting = true;
+        void set_packet_flag(){
+            packetWaiting = true;
         }
 
 };
