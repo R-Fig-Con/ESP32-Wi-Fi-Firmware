@@ -1,12 +1,14 @@
+#include <ESPmDNS.h>
+
 void wifi_com_task(void* parameter) {
     uint8_t* mac_addr = (uint8_t*) parameter;
 
     WiFiServer server(AP_PORT);
-    WIFI_CONFIG_RET status = wifi_com_start(&server, mac_addr);
+    bool status = wifi_com_start(&server, mac_addr);
 
-    if (status.success) {
+    if (status) {
         Serial.println("WiFi COM started successfully.");
-        wifi_com_handle_con(status.server);
+        wifi_com_handle_con(&server);
     } else {
         Serial.println("WiFi COM failed to start.");
     }
@@ -43,9 +45,7 @@ static struct{
 
 } status;
 
-WIFI_CONFIG_RET wifi_com_start(WiFiServer* server, uint8_t my_mac[MAC_ADDRESS_SIZE]){
-
-    WIFI_CONFIG_RET ret = {server, false};
+bool wifi_com_start(WiFiServer* server, uint8_t my_mac[MAC_ADDRESS_SIZE]){
 
     const char* ssid = WIFI_NAME;
     const char* password = WIFI_PASSWORD;
@@ -55,15 +55,36 @@ WIFI_CONFIG_RET wifi_com_start(WiFiServer* server, uint8_t my_mac[MAC_ADDRESS_SI
     // Start the SoftAP with SSID and password
     if (!WiFi.begin(ssid, password)) {
         Serial.println("WiFi Start Failed!");
-        return ret;
+        return false;
     }
 
+    //From mdns example
+    // Wait for connection
+    while (WiFi.status() != WL_CONNECTED) {
+      delay(500); Serial.print(".");
+    }
+
+    // Set up mDNS responder:
+    // - first argument is the domain name, in this example
+    //   the fully-qualified domain name is "esp32.local"
+    // - second argument is the IP address to advertise
+    //   we send our IP address on the WiFi network
+    if (!MDNS.begin("esp32")) {
+      Serial.println("Error setting up MDNS responder!");
+      return false; // TODO maybe add different returns for each error
+    }
+    Serial.println("mDNS responder started");
+
+    // Start TCP (HTTP) server
     server->begin();
+    Serial.println("TCP server started");
 
-    Serial.printf("Listening on %s:%d\n", WiFi.localIp().toString().c_str(), AP_PORT);
+    // Add service to MDNS-SD
+    MDNS.addService("http", "tcp", 80); //TODO maybe not call it http?
 
-    ret.success = true;
-    return ret;
+    Serial.printf("Listening on %s; ruuning on port %d but addService on port 80\n", WiFi.localIP().toString().c_str(), AP_PORT);
+
+    return true;
 }
 
 void wifi_handle_status(WiFiClient* client, uint8_t* buffer, uint16_t len){
@@ -313,7 +334,7 @@ void wifi_choose_handler(WiFiClient* client, uint8_t* buffer, uint16_t len){
     }
 }
 
-void wifi_com_handle_con(WiFiServer* server){
+void wifi_com_handle_con(NetworkServer* server){
 
     while(true){
 
