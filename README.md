@@ -9,7 +9,15 @@ Developed By:
 
 This repository contains the firmware for a wireless Medium Access Control (MAC) protocol implementation, developed for an ESP32 microcontroller development board (DOIT ESP32 DEVKIT V1) paired with a CC1101 radio module.
 
-Key components include:
+
+Hardware used in this project:
+- CC1101 radio ![C1101 ](./docs/cc1101.png "Radio with antenna")
+
+- [Esp 32 controller](https://www.flux.ai/blog/esp32-pinout-everything-you-need-to-know)
+
+- Female to female cables connecting radio and Esp32, usb cable to connect to computer
+
+Key software components include:
 
 - MAC protocol implementation based on CSMA/CA, with RTS/CTS and NAV.
 
