@@ -245,6 +245,9 @@ void loop(){
 /**
  * Directly affects 'packet_to_receive' global var, implements NAV
  * returns true if crc is ok and dest is self else returns false and waits nav if needed
+ * 
+ * Todo add sleep mode during nav instead of NAV. Should requires waiting until it gets idle
+ * and use command strobes to change states. Check cc1101 datasheet
  */
 bool receiver() {
 
