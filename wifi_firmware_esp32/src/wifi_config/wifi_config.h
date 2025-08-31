@@ -2,6 +2,8 @@
 #include <esp_wifi.h>
 #include "wifi_config_app_com.h"
 
+#include "internet_info.h" //Hidden by gitignore, recreate it 
+
 #define AP_PORT 5000
 const uint8_t AP_IP_ARR[4] = {10, 0, 0, 1};
 

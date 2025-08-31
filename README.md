@@ -4,6 +4,21 @@ Developed By:
  - Rafael Conceição, student number 41486
  - Eduardo Tavares, student number 49454
 
+ # Branch specific information
+
+This branch focuses on developing the connection between the esp32 and the application.
+Unlike the main branch, all devices will use a previously existing network. With the usage
+of multicast dns, the computer application controlling the nodes may be able to connect to 
+every device at once.
+
+## Esp-32 code
+
+Connecting the esp-32 node to your local network will require your compiled code to have
+your internate name and password. To avoid it being shared through github, these two pieces of
+information were put on a header file, and added to a gitignore.
+
+This means anyone trying to run the code ought to recreate the file found in [wifi_firmware_esp32/src/wifi_config/.gitignore](here). 2 string defines WIFI_NAME and WIFI_PASSWORD are enough
+
 # Wi-Fi firmware for ESP32
 ## A Low-Cost Experimental Platform for Dense Wireless Networks
 
