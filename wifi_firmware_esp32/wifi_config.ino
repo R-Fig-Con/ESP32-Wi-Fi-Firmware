@@ -101,7 +101,7 @@ void wifi_handle_status(WiFiClient* client, uint8_t* buffer, uint16_t len){
     rsp[offset++] = mac_data.successes & 0xFF;
     rsp[offset++] = mac_data.successes >> 8;
 
-    int failure_offset = offset;
+    //int failure_offset = offset; - not being used
     uint16_t saved_failures = mac_data.failures;
 
     rsp[offset++] = saved_failures & 0xFF;
@@ -109,7 +109,7 @@ void wifi_handle_status(WiFiClient* client, uint8_t* buffer, uint16_t len){
 
     uint32_t saved_retries =  mac_data.retries;
 
-    int retry_offset = offset;
+    //int retry_offset = offset; - not being used
     rsp[offset++] = (uint8_t) (saved_retries & 0xFF);
     rsp[offset++] = (uint8_t) ((saved_retries >> 8) & 0xFF );
     rsp[offset++] = (uint8_t) ((saved_retries >> 16) & 0xFF);
@@ -277,7 +277,7 @@ void wifi_handle_backoff(WiFiClient* client, uint8_t* buffer, uint16_t len){
     if( len != sizeof(char) ){
         rsp[0] = ESP_RESP_ERROR;
         client->write( rsp, strlen(rsp) );
-        Serial.printf("Backoff error; received message with length %l, expected onw with size 1\n", len);
+        Serial.printf("Backoff error; received message with length %u, expected one with size 1\n", len);
         return;
     }
 
@@ -300,7 +300,7 @@ void wifi_handle_backoff(WiFiClient* client, uint8_t* buffer, uint16_t len){
             break;
         
         default:
-            Serial.printf("Backoff error; received char %c, not recognized\n");
+            Serial.printf("Backoff error; received char %c, not recognized\n", protocol_char);
             char protocol_not_recognized_rsp[] = ".Protocol given not recognized";
             protocol_not_recognized_rsp[0] = ESP_RESP_ERROR;
             client->write(protocol_not_recognized_rsp, strlen(protocol_not_recognized_rsp));

@@ -18,7 +18,7 @@ CSMA_CONTROL::CSMA_CONTROL(bool (*isChannelFree)(), CONTENTION_BACKOFF* contenti
     
 }
 CSMA_CONTROL::~CSMA_CONTROL(){
-    delete contentionAlgorithm;
+    delete this->contentionAlgorithm;
 }
 
 #ifdef CCA_FROM_GDO2_PIN

@@ -33,7 +33,7 @@ TRAFFIC_GEN::TRAFFIC_GEN(SEND_PROTOCOL* protocol, uint8_t my_addr[6], uint8_t de
 TRAFFIC_GEN::TRAFFIC_GEN(SEND_PROTOCOL* protocol, uint8_t my_addr[6], uint8_t destination_addr[6], uint16_t duration, uint16_t message_length, char* message){
 
     this->running = false;
-    this->send_protocol = send_protocol;
+    this->send_protocol = protocol;
     
     ieeeFrame * trf_frame = (ieeeFrame *) this->packet.data;
     PACKET_TO_DATA(trf_frame);
