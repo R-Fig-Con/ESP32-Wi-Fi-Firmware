@@ -861,7 +861,7 @@ void CC1101::jamming(void)
  * Return:
  *  the RSSI in dBm
  */
-int CC1101::raw2rssi(char raw) {
+int16_t CC1101::raw2rssi(char raw) {
   
     uint8_t rssi_dec;
     // TODO: This rssi_offset is dependent on baud and MHz; this is for 38.4kbps and 433 MHz.
@@ -869,9 +869,9 @@ int CC1101::raw2rssi(char raw) {
     
     rssi_dec = (uint8_t) raw;
     if (rssi_dec >= 128)
-        return ((int)( rssi_dec - 256) / 2) - rssi_offset;
+        return (int16_t) ((int16_t)( rssi_dec - 256) / 2) - rssi_offset;
     else
-        return (rssi_dec / 2) - rssi_offset;
+        return (int16_t) (rssi_dec / 2) - rssi_offset;
 }
 
 /**

@@ -630,7 +630,7 @@ class CC1101
    * Return:
    *  the RSSI in dBm
    */
-  int raw2rssi(char raw);
+  int16_t raw2rssi(char raw);
   
   /**
    * lqi
