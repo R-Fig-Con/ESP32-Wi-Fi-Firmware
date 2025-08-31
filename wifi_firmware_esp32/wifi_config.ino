@@ -44,38 +44,23 @@ static struct{
 } status;
 
 WIFI_CONFIG_RET wifi_com_start(WiFiServer* server, uint8_t my_mac[MAC_ADDRESS_SIZE]){
-    
-    IPAddress local_IP(AP_IP_ARR[0], AP_IP_ARR[1], AP_IP_ARR[2], AP_IP_ARR[3]);
-    IPAddress gateway(AP_IP_ARR[0], AP_IP_ARR[1], AP_IP_ARR[2], AP_IP_ARR[3]);
-    IPAddress subnet(255, 255, 255, 0);
 
     WIFI_CONFIG_RET ret = {server, false};
 
-    char ssid[6 + MAC_STR_LEN + 1] = "ESP32-"; // Base(6) + MAC + null terminator
-    sprintf(ssid + 6, "%02X:%02X:%02X:%02X:%02X:%02X", 
-        my_mac[0], my_mac[1], my_mac[2], my_mac[3], my_mac[4], my_mac[5]);
-
+    const char* ssid = WIFI_NAME;
     const char* password = WIFI_PASSWORD;
 
-    Serial.printf("SSID: %s\n", ssid);
-
-    WiFi.mode(WIFI_MODE_AP);
-
-    // Configure static IP for the SoftAP interface
-    if (!WiFi.softAPConfig(local_IP, gateway, subnet)) {
-        Serial.println("WiFi Config Failed!");
-        return ret;
-    }
+    WiFi.mode(WIFI_MODE_STA);
 
     // Start the SoftAP with SSID and password
-    if (!WiFi.softAP(ssid, password)) {
+    if (!WiFi.begin(ssid, password)) {
         Serial.println("WiFi Start Failed!");
         return ret;
     }
 
     server->begin();
 
-    Serial.printf("Listening on %s:%d\n", WiFi.softAPIP().toString().c_str(), AP_PORT);
+    Serial.printf("Listening on %s:%d\n", WiFi.localIp().toString().c_str(), AP_PORT);
 
     ret.success = true;
     return ret;

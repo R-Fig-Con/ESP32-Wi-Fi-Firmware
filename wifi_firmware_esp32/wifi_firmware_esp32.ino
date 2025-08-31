@@ -121,10 +121,9 @@ void setup() {
     Serial.begin(57600);
 
     // Wifi, for getting the MAC address.
-    WiFi.mode(WIFI_AP);
+    WiFi.mode(WIFI_STA);
     //WiFi.STA.begin(); -- No need to start WiFi to get MAC
-    //esp_wifi_get_mac(WIFI_IF_STA, myMacAddress);
-    esp_wifi_get_mac(WIFI_IF_AP, myMacAddress);
+    esp_wifi_get_mac(WIFI_IF_STA, myMacAddress);
 
     delay(1000);
 
