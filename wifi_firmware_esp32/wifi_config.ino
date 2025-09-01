@@ -64,12 +64,8 @@ bool wifi_com_start(WiFiServer* server, uint8_t my_mac[MAC_ADDRESS_SIZE]){
       delay(500); Serial.print(".");
     }
 
-    // Set up mDNS responder:
-    // - first argument is the domain name, in this example
-    //   the fully-qualified domain name is "esp32.local"
-    // - second argument is the IP address to advertise
-    //   we send our IP address on the WiFi network
-    if (!MDNS.begin("esp32")) {
+    // On begin name collision chooses esp32-2 (and probably so on)
+    if (!MDNS.begin(WiFi.localIP().toString().c_str())) {
       Serial.println("Error setting up MDNS responder!");
       return false; // TODO maybe add different returns for each error
     }
@@ -80,7 +76,7 @@ bool wifi_com_start(WiFiServer* server, uint8_t my_mac[MAC_ADDRESS_SIZE]){
     Serial.println("TCP server started");
 
     // Add service to MDNS-SD
-    MDNS.addService("http", "tcp", 80); //TODO maybe not call it http?
+    MDNS.addService("http", "tcp", AP_PORT); //TODO maybe not call it http?
 
     Serial.printf("Listening on %s; ruuning on port %d but addService on port 80\n", WiFi.localIP().toString().c_str(), AP_PORT);
 
