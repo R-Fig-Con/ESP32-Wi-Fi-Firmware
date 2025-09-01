@@ -1,40 +1,80 @@
-/***
-  This file is part of avahi.
+//source
+// https://github.com/avahi/avahi/blob/master/examples/client-browse-services.c
 
-  avahi is free software; you can redistribute it and/or modify it
-  under the terms of the GNU Lesser General Public License as
-  published by the Free Software Foundation; either version 2.1 of the
-  License, or (at your option) any later version.
+#include "instances_search.h"
 
-  avahi is distributed in the hope that it will be useful, but WITHOUT
-  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-  or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General
-  Public License for more details.
-
-  You should have received a copy of the GNU Lesser General Public
-  License along with avahi; if not, write to the Free Software
-  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
-  USA.
-***/
-
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include <string.h>
 
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
 #include <time.h>
 
-#include <avahi-client/client.h>
-#include <avahi-client/lookup.h>
+#include <avahi-client/lookup.h> // for lots
+#include <avahi-common/simple-watch.h> // for lots
 
-#include <avahi-common/simple-watch.h>
-#include <avahi-common/malloc.h>
-#include <avahi-common/error.h>
+#include <avahi-common/malloc.h> // avahi_free
+#include <avahi-common/error.h> // for error strings
 
 static AvahiSimplePoll *simple_poll = NULL;
+static AvahiClient *client = NULL;
+static AvahiServiceBrowser *esp = NULL;
 
+static instance_search_event* found = NULL;
+static instance_search_event* left = NULL;
+
+//address values given by function are probably not in malloc indefinitely
+//so saving in node structure may be necessary 
+
+typedef struct node{
+    char* address; //[IP_ADDRESS_MAX_SIZE];
+    struct node* next;
+} address_node;
+
+static address_node* head = NULL;
+
+static void add_node(char* value){
+    address_node* current = head;
+    
+    while (1){
+        if (current == NULL){
+            current = (address_node*) malloc(sizeof(address_node));
+            current->address = value;
+            return;
+        }
+
+        current = current->next;
+    } 
+}
+
+static void remove_node(char* value){
+    address_node* prev = head;
+
+    address_node* current = head->next;
+    
+    while (1){
+        if (strcmp(current->address, value)){
+            prev->next = current->next;
+            free(current->address);
+            free(current);
+            return;
+        }
+        
+        current = current->next;
+        prev = prev->next; 
+    } 
+}
+
+void on_instance_found_event(instance_search_event action){
+    found = action;
+}
+
+void on_instance_left_event(instance_search_event action){
+    left = action;
+}
+
+//as service name is ip for now this function may not be necessary
+//consider cutting it and leaving it to browser callback
 static void resolve_callback(
     AvahiServiceResolver *r,
     AVAHI_GCC_UNUSED AvahiIfIndex interface,
@@ -65,6 +105,13 @@ static void resolve_callback(
             fprintf(stderr, "Service '%s' of type '%s' in domain '%s':\n", name, type, domain);
 
             avahi_address_snprint(a, sizeof(a), address);
+
+            char* address = (char*) malloc(IP_ADDRESS_MAX_SIZE);
+            memcpy(address, name, strlen(name) + 1);
+            add_node(address);
+
+            found(address);
+
             t = avahi_string_list_to_string(txt);
             fprintf(stderr,
                     "\t%s:%u (%s)\n"
@@ -96,19 +143,19 @@ static void browse_callback(
     AvahiIfIndex interface,
     AvahiProtocol protocol,
     AvahiBrowserEvent event,
-    const char *name,
+    const char *name, // name is unique 
     const char *type,
     const char *domain,
     AVAHI_GCC_UNUSED AvahiLookupResultFlags flags,
     void* userdata) {
 
-    AvahiClient *c = userdata;
+    AvahiClient *c = (AvahiClient*) userdata;
     assert(b);
 
     /* Called whenever a new services becomes available on the LAN or is removed from the LAN */
 
     switch (event) {
-        case AVAHI_BROWSER_FAILURE:
+        case AVAHI_BROWSER_FAILURE: // Error case
 
             fprintf(stderr, "(Browser) %s\n", avahi_strerror(avahi_client_errno(avahi_service_browser_get_client(b))));
             avahi_simple_poll_quit(simple_poll);
@@ -122,12 +169,16 @@ static void browse_callback(
                the callback function is called the server will free
                the resolver for us. */
 
-            if (!(avahi_service_resolver_new(c, interface, protocol, name, type, domain, AVAHI_PROTO_UNSPEC, 0, resolve_callback, c)))
+            if (!(avahi_service_resolver_new(c, interface, protocol, name, type, domain, AVAHI_PROTO_UNSPEC, (AvahiLookupFlags) 0, resolve_callback, c)))
                 fprintf(stderr, "Failed to resolve service '%s': %s\n", name, avahi_strerror(avahi_client_errno(c)));
 
             break;
 
         case AVAHI_BROWSER_REMOVE:
+
+            left((char*) name);
+            remove_node((char*) name);
+
             fprintf(stderr, "(Browser) REMOVE: service '%s' of type '%s' in domain '%s'\n", name, type, domain);
             break;
 
@@ -149,43 +200,33 @@ static void client_callback(AvahiClient *c, AvahiClientState state, AVAHI_GCC_UN
     }
 }
 
-int main(AVAHI_GCC_UNUSED int argc, AVAHI_GCC_UNUSED char*argv[]) {
-    AvahiClient *client = NULL;
-    AvahiServiceBrowser *sb = NULL;
-    AvahiServiceBrowser *esp = NULL;
-    int error;
-    int ret = 1;
 
-    /* Allocate main loop object */
+//Todo decide if it should wait for search end
+void end_instance_search(){
+    avahi_simple_poll_quit(simple_poll); 
+}
+
+void start_instance_search(){
+    int error;
+
     if (!(simple_poll = avahi_simple_poll_new())) {
         fprintf(stderr, "Failed to create simple poll object.\n");
         goto fail;
     }
 
-    /* Allocate a new client */
-    client = avahi_client_new(avahi_simple_poll_get(simple_poll), 0, client_callback, NULL, &error);
+    client = avahi_client_new(avahi_simple_poll_get(simple_poll), (AvahiClientFlags) 0, client_callback, NULL, &error);
 
-    /* Check whether creating the client object succeeded */
     if (!client) {
         fprintf(stderr, "Failed to create client: %s\n", avahi_strerror(error));
         goto fail;
     }
 
-    /* Create the service browser */
-    if (!(esp = avahi_service_browser_new(client, AVAHI_IF_UNSPEC, AVAHI_PROTO_UNSPEC, "_esp._tcp", NULL, 0, browse_callback, client))) {
+    if (!(esp = avahi_service_browser_new(client, AVAHI_IF_UNSPEC, AVAHI_PROTO_UNSPEC, SERVICE_TYPE, NULL, (AvahiLookupFlags) 0, browse_callback, client))) {
         fprintf(stderr, "Failed to create service browser: %s\n", avahi_strerror(avahi_client_errno(client)));
         goto fail;
     }
 
-    if (!(sb = avahi_service_browser_new(client, AVAHI_IF_UNSPEC, AVAHI_PROTO_UNSPEC, "_http._tcp", NULL, 0, browse_callback, client))) {
-        fprintf(stderr, "Failed to create service esp : %s\n", avahi_strerror(avahi_client_errno(client)));
-        goto fail;
-    }
-
-    /* Run the main loop */
-    avahi_simple_poll_loop(simple_poll);
-
-    ret = 0;
+    avahi_simple_poll_loop(simple_poll); //loop
 
 fail:
 
@@ -193,15 +234,12 @@ fail:
     if (esp)
         avahi_service_browser_free(esp);
 
-
-    if (sb)
-        avahi_service_browser_free(sb);
-
     if (client)
         avahi_client_free(client);
 
     if (simple_poll)
         avahi_simple_poll_free(simple_poll);
 
-    return ret;
+    //todo add error communication
+
 }
