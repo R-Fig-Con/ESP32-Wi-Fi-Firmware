@@ -203,7 +203,7 @@ static void client_callback(AvahiClient *c, AvahiClientState state, AVAHI_GCC_UN
 
 //Todo decide if it should wait for search end
 void end_instance_search(){
-    avahi_simple_poll_quit(simple_poll); 
+    avahi_simple_poll_quit(simple_poll); //avahi_simple_poll_iterate();
 }
 
 void start_instance_search(){

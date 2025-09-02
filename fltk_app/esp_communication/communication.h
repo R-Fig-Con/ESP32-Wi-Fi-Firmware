@@ -1,6 +1,5 @@
 #include <arpa/inet.h> //uint16_t, unit_32t
 
-
 #define RETURN_SUCCESS 1
 #define RETURN_ESP_ERROR 0
 
@@ -39,12 +38,12 @@ typedef struct{
 /**
  * connect to esp_32
  */
-int connection_start();
+int connection_start(const char* ip_address);
 
 /**
  * end communication
  */
-void connection_end();
+void connection_end(const char* ip_address);
 
 /**
  * Set time interval 
@@ -53,14 +52,14 @@ void connection_end();
  * 
  * @param number time interval in millisseconds
  */
-int set_time(time_option time_type, uint16_t number);
+int set_time(const char* ip_address, time_option time_type, uint16_t number);
 
 /**
  * Set mac address 
  * 
  * @param address the mac address in hexadecimal string
  */
-int set_destination(char address[MAC_ADDRESS_SIZE]);
+int set_destination(const char* ip_address, char address[MAC_ADDRESS_SIZE]);
 
 /**
  * Send data to Esp. Call after communication_start and
@@ -70,14 +69,14 @@ int set_destination(char address[MAC_ADDRESS_SIZE]);
  * 
  * @param length the length of the data
 */
-int set_message(char* data, uint16_t length);
+int set_message(const char* ip_address, char* data, uint16_t length);
 
 /**
  * Set the backoff algorithm
  * 
  * @param algorithm the backoff algorithm
  */
-int set_backoff(backoff_option option);
+int set_backoff(const char* ip_address, backoff_option option);
 
 /**
  * Get status updatefrom the esp device
@@ -86,4 +85,4 @@ int set_backoff(backoff_option option);
  * values. Unchanged and invalid if return is error indicator
  * status.message will have malloc? TODO CHECK
  */
-int get_status(status* mem);
+int get_status(const char* ip_address, status* mem);

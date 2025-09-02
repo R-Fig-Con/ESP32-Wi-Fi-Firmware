@@ -4,17 +4,8 @@
 #include <FL/Fl_Sys_Menu_Bar.H> //top menu bar
 #include <FL/Fl_Button.H>
 
-//#include <FL/Fl_Anim_GIF_Image.H>
-
 #include "utils.h"
-
-
-#define BACKOFF_MILD_CHOICE MILD
-#define BACKOFF_NONE_CHOICE NONE
-#define BACKOFF_LINEAR_CHOICE LINEAR
-
-#define LINEAR_TIME_INTERVAL LINEAR_TIME
-#define GAUSSIAN_TIME_INTERVAL GAUSSIAN
+#include "instances_search/instances_search.h"
 
 #define X_START 250
 #define Y_START 50
@@ -24,19 +15,16 @@
 
 #define Y_SPACING 60
 
-/**
- * change to red as to mark change to send?
- */
-void choice_callback(Fl_Widget *w, void*){
-    w->color(FL_RED);
+void instance_found_action(char address[IP_ADDRESS_MAX_SIZE]){
+
 }
 
-void set_status_timer_callback(){
+void instance_left_action(char address[IP_ADDRESS_MAX_SIZE]){
 
 }
 
 
-void call(Fl_Widget*, void*){
+void print_callback(Fl_Widget*, void*){
     printf("Time in value: %s\n", Time_input->value());
 
     printf("Message input value: %s\n", Text_input->value());
@@ -111,7 +99,7 @@ int main() {
 
   //Fl_Menu_Bar menubar (0,0,1000,30); menubar.menu(menutable);
 
-  Fl_Button* b = new Fl_Button(600, 100, 160, 35, "Print values test"); b->callback(call);
+  Fl_Button* b = new Fl_Button(600, 100, 160, 35, "Print values test"); b->callback(print_callback);
 
   Fl_Button* send = new Fl_Button(600, 300, 160, 35, "Send all data");
   send->callback(send_all_data_sets);
@@ -126,8 +114,8 @@ int main() {
   y_measure += 10;
 
   Time_type_choice = new Fl_Choice(X_START, y_measure, X_SIZE, Y_SIZE, "Interval type: ");
-  Time_type_choice->add("Gaussian", 0, NULL, (void*) LINEAR_TIME_INTERVAL);
-  Time_type_choice->add("Linear", 0, NULL, (void*) GAUSSIAN_TIME_INTERVAL);
+  Time_type_choice->add("Gaussian", 0, NULL, (void*) LINEAR_TIME);
+  Time_type_choice->add("Linear", 0, NULL, (void*) GAUSSIAN);
   Time_type_choice->value(0);
   y_measure += Y_SIZE + Y_SPACING; 
 
@@ -138,9 +126,9 @@ int main() {
   time_group->end(); // needed
 
   Backoff_choice = new Fl_Choice(X_START, y_measure, X_SIZE, Y_SIZE, "Backoff: ");
-  Backoff_choice->add("Linear backoff", 0, NULL, (void*) BACKOFF_LINEAR_CHOICE);
-  Backoff_choice->add("Mild", 0, NULL, (void*) BACKOFF_MILD_CHOICE);
-  Backoff_choice->add("No backoff", 0, NULL, (void*) BACKOFF_NONE_CHOICE);
+  Backoff_choice->add("Linear backoff", 0, NULL, (void*) LINEAR);
+  Backoff_choice->add("Mild", 0, NULL, (void*) MILD);
+  Backoff_choice->add("No backoff", 0, NULL, (void*) NONE);
   Backoff_choice->value(0);
   y_measure += Y_SIZE + Y_SPACING;
 
@@ -149,9 +137,9 @@ int main() {
   /**
    * As a choice app would show all found esps mac addresses
    */
-  Address_choice->add("0X12_34_56_78_9A_BC", 0, NULL, (void*) BACKOFF_MILD_CHOICE);
-  Address_choice->add("0XFF_FF_FF_FF_FF_FF", 0, NULL, (void*) BACKOFF_NONE_CHOICE);
-  Address_choice->add("0XAA_AA_AA_AA_AA_AA", 0, NULL, (void*) BACKOFF_LINEAR_CHOICE);
+  Address_choice->add("0X12_34_56_78_9A_BC", 0, NULL, NULL);
+  Address_choice->add("0XFF_FF_FF_FF_FF_FF", 0, NULL, NULL);
+  Address_choice->add("0XAA_AA_AA_AA_AA_AA", 0, NULL, NULL);
   Address_choice->value(0);
   y_measure += Y_SIZE + Y_SPACING;
     

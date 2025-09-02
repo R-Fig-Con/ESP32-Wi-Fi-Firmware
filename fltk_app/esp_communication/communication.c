@@ -3,10 +3,12 @@
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+
+#include <string.h>
+
 #include "communication.h"
 
 #define ESP_PORT 5000
-#define ESP_IP "10.0.0.1"
 
 #define TERMINATE_OPT_CODE 'x'
 #define STATUS_OPT_CODE 's'
@@ -20,8 +22,60 @@
 
 #define CONTROL_BYTES_SIZE 3
 
-static int sockfd;
+/** list of nodes with key address connected to value sockfd */
+typedef struct node{
+    const char* address;
+    int sockfd; 
+    struct node* next;
+} pair_node;
 
+static pair_node* head = NULL;
+
+static void add_node(const char* key, int value){
+    pair_node* current = head;
+    
+    while (1){
+        if (current == NULL){
+            current = (pair_node*) malloc(sizeof(pair_node));
+            current->address = key;
+            current->sockfd = value;
+            return;
+        }
+
+        current = current->next;
+    } 
+}
+
+static int get_sock_fd(const char* value){
+    pair_node* current = head;
+    
+    while (1){
+        if (strcmp(current->address, value)){
+            return current->sockfd;
+        }
+
+        current = current->next;
+    } 
+}
+
+static void remove_node(const char* value){
+    pair_node* prev = head;
+
+    pair_node* current = head->next;
+    
+    while (1){
+        if (strcmp(current->address, value)){
+            prev->next = current->next;
+            free(current);
+            return;
+        }
+        
+        current = current->next;
+        prev = prev->next; 
+    } 
+}
+
+//if instance discovery is multi-threaded itself this is not safe
 char communication_buffer[MAX_MESSAGE_SIZE];
 
 static uint16_t set_control_bytes(uint16_t len, char opt_code){
@@ -35,7 +89,7 @@ static uint16_t set_control_bytes(uint16_t len, char opt_code){
     return len;
 }
 
-static int receive_response(){
+inline static int receive_response(int sockfd){
     // Receive response
     int bytes_read = read(sockfd, communication_buffer, MAX_MESSAGE_SIZE - 1);
     if(communication_buffer[0] == ESP_RESP_ERROR){
@@ -48,11 +102,11 @@ static int receive_response(){
 }
 
 
-int connection_start(){
+int connection_start(const char* ip_address){
     struct sockaddr_in addr;
 
     // Create the socket
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == -1) {
         perror("Could not create socket.");
         return RETURN_ESP_ERROR;
@@ -63,7 +117,7 @@ int connection_start(){
     addr.sin_family = AF_INET;
     addr.sin_port = htons(ESP_PORT);
 
-    int error = inet_pton(AF_INET, ESP_IP, &addr.sin_addr);
+    int error = inet_pton(AF_INET, ip_address, &addr.sin_addr);
     if (error == 0) {
         perror("Invalid network address.");
         return RETURN_ESP_ERROR;
@@ -81,16 +135,21 @@ int connection_start(){
         return RETURN_ESP_ERROR;
     }
 
+    add_node(ip_address, sockfd);    
+
     return RETURN_SUCCESS;
 }
 
 
-void connection_end(){
-    close(sockfd);
+void connection_end(const char* ip_address){
+    close(get_sock_fd(ip_address));
+    remove_node(ip_address);
 }
 
 
-int set_time(time_option time_type, uint16_t number){
+int set_time(const char* ip_address, time_option time_type, uint16_t number){
+
+    int sockfd = get_sock_fd(ip_address);
 
     char input_code = (GAUSSIAN == time_type) ? 'g' : 'c';
 
@@ -101,10 +160,15 @@ int set_time(time_option time_type, uint16_t number){
     communication_buffer[CONTROL_BYTES_SIZE + 1] = number >> 8;
     communication_buffer[CONTROL_BYTES_SIZE + 2] = number & 0xFF;
 
-    return receive_response();
+    send(sockfd, communication_buffer, len, 0);
+    printf("Time config sent to ESP node.\n");
+
+    return receive_response(sockfd);
 }
 
-int set_destination(char address[MAC_ADDRESS_SIZE]){
+int set_destination(const char* ip_address, char address[MAC_ADDRESS_SIZE]){
+    int sockfd = get_sock_fd(ip_address);
+
     uint16_t len = MAC_ADDRESS_SIZE;
     len = set_control_bytes(len, DEST_OPT_CODE);
     memcpy(communication_buffer + CONTROL_BYTES_SIZE, address, MAC_ADDRESS_SIZE);
@@ -116,10 +180,11 @@ int set_destination(char address[MAC_ADDRESS_SIZE]){
     send(sockfd, communication_buffer, len, 0);
     printf("Destination config sent to ESP node.\n");
 
-    return receive_response();
+    return receive_response(sockfd);
 }
 
-int set_message(char* data, uint16_t length){
+int set_message(const char* ip_address, char* data, uint16_t length){
+    int sockfd = get_sock_fd(ip_address);
     printf("set message; length: %d\n", length);
 
     uint16_t len = length;
@@ -137,10 +202,11 @@ int set_message(char* data, uint16_t length){
     send(sockfd, communication_buffer, len, 0);
     printf("Message config sent to ESP node.\n");
 
-    return receive_response();
+    return receive_response(sockfd);
 }
 
-int set_backoff(backoff_option option){
+int set_backoff(const char* ip_address, backoff_option option){
+    int sockfd = get_sock_fd(ip_address);
     uint16_t len = (uint16_t) sizeof(char);
 
     len = set_control_bytes(len, BACKOFF_PROTOCOL_OPT_CODE);
@@ -178,11 +244,11 @@ int set_backoff(backoff_option option){
     send(sockfd, communication_buffer, len, 0);
     printf("Backoff protocol config sent to ESP node.\n");
 
-    return receive_response();
+    return receive_response(sockfd);
 }
 
-int get_status(status* mem){
-
+int get_status(const char* ip_address, status* mem){
+    int sockfd = get_sock_fd(ip_address);
     uint16_t len = set_control_bytes(0, STATUS_OPT_CODE);
 
     // Send message
