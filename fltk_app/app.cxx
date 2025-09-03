@@ -1,139 +1,131 @@
-#include <stdlib.h> // atoi
-#include <stdexcept> //exceptions
+#include <stdlib.h>  // atoi
+#include <pthread.h> // threads
+
+#include <FL/fl_message.H> // various error showing messages
 
 #include <FL/Fl_Sys_Menu_Bar.H> //top menu bar
 #include <FL/Fl_Button.H>
+#include <FL/Fl_Window.H>
+#include <FL/Fl_Tabs.H>
+#include <FL/Fl_Group.H>
 
-#include "utils.h"
+#include "Esp_Group.h"
 #include "instances_search/instances_search.h"
-
-#define X_START 250
-#define Y_START 50
 
 #define X_SIZE 150
 #define Y_SIZE 25
 
 #define Y_SPACING 60
 
-void instance_found_action(char address[IP_ADDRESS_MAX_SIZE]){
+/*list can probably be substituted by Fl_Group::array() */
+typedef struct node
+{
+  const char *address;
+  Esp_Group *grp;
+  struct node *next;
+} group_list;
 
-}
+static group_list *head = NULL;
 
-void instance_left_action(char address[IP_ADDRESS_MAX_SIZE]){
+static void add_node(const char *key, Esp_Group *value)
+{
+  group_list *current = head;
 
-}
-
-
-void print_callback(Fl_Widget*, void*){
-    printf("Time in value: %s\n", Time_input->value());
-
-    printf("Message input value: %s\n", Text_input->value());
-
-    printf("Time interval type: %d\n", Time_type_choice->value());
-
-    printf("Backoff type: %d\n", Backoff_choice->value());
-
-    printf("Address type value: %d\n", Address_choice->value());
-
-    //check if empty string is a null value
-    if(Text_input->value() == NULL){
-      printf("Message string pointer is null\n");
-    }else{
-      printf("Message string pointer is NOT null\n");
+  while (1)
+  {
+    if (current == NULL)
+    {
+      current = (group_list *)malloc(sizeof(group_list));
+      current->address = key;
+      current->grp = value;
+      return;
     }
 
-    //testing to see what disappears
-    //time_group->hide();
-}
-
-/**
- * This callback will send all data, even the ones user has not changed
- * Only exception is empty text boxes
- */
-void send_all_data_sets(Fl_Widget*, void*){
-
-  fltk_set_message();
-  
-  printf("After set message\n");
-
-  fltk_set_destination();
-
-  printf("After set destination\n");
-  
-  fltk_set_backoff();
-
-  printf("After set Backoff\n");
-
-  fltk_set_time();
-
-  printf("After set time;\nDONE\n\n");
-  
-}
-
-Fl_Menu_Item menutable[] = {
-  {"&Status timer",0,0,0,FL_SUBMENU},
-    {"set interval", 0,  0},
-    {"Undo", 0, 0},
-    {0},
-  {0}
-};
-
-
-/**
- * personal note about group:
- * 
- * if group is created on main all objects afterwards will belong to the group by default
- * 
- * calling end() method  no object will belong to it, unless it is added through add()
- * 
- * Items belonging on box but not on area are drawn, but seem impossible to interact
- */
-int main() {
-
-  if(!connection_start()){
-    printf("Connection start failed");
-    return 0;
+    current = current->next;
   }
+}
 
-  G_win = new Fl_Window(1000, 510, "App"); //; G_win->set_modal();
+static Esp_Group *get_group(const char *key)
+{
+  group_list *current = head;
 
-  //Fl_Menu_Bar menubar (0,0,1000,30); menubar.menu(menutable);
+  while (1)
+  {
+    if (strcmp(current->address, key))
+    {
+      return current->grp;
+    }
 
-  Fl_Button* b = new Fl_Button(600, 100, 160, 35, "Print values test"); b->callback(print_callback);
+    current = current->next;
+  }
+}
 
-  Fl_Button* send = new Fl_Button(600, 300, 160, 35, "Send all data");
-  send->callback(send_all_data_sets);
+static void remove_node(const char *key)
+{
+  group_list *prev = head;
 
-  int y_measure = Y_START;
+  group_list *current = head->next;
 
-  time_group = new Fl_Group(X_START, y_measure, X_SIZE + 100, Y_SIZE + 100, "BOX DARK RED");
-  //time_group->begin();// alredy done by default
-  time_group->color(FL_DARK_RED); time_group->redraw();
-  //time_group->hide();
+  while (1)
+  {
+    if (strcmp(current->address, key))
+    {
+      prev->next = current->next;
+      free(current);
+      return;
+    }
 
-  y_measure += 10;
+    current = current->next;
+    prev = prev->next;
+  }
+}
 
-  Time_type_choice = new Fl_Choice(X_START, y_measure, X_SIZE, Y_SIZE, "Interval type: ");
-  Time_type_choice->add("Gaussian", 0, NULL, (void*) LINEAR_TIME);
-  Time_type_choice->add("Linear", 0, NULL, (void*) GAUSSIAN);
+/**
+ * Element that can cycle around every gui input screen
+ * of every connected esp from instances_search
+ *
+ * When further level of knowledge of the fltk library is
+ * achieved, attempt to create class to encompass properties
+ * in a more readable manner
+ */
+Fl_Tabs *esp_interfaces_group;
+
+Esp_Group::Esp_Group(char *address, int X, int Y, int W, int H) : Fl_Group(X, Y, W, H)
+{
+
+  this->ip_address = address;
+
+  int current_y = Y + Y_SPACING;
+
+  int x_start = X;
+  this->Time_group = new Fl_Group(x_start, current_y, X_SIZE + 100, Y_SIZE + 100, "BOX DARK RED");
+  // time_group->begin();// alredy done by default
+  Time_group->color(FL_DARK_RED);
+  Time_group->redraw();
+  // time_group->hide();
+
+  current_y += 10;
+
+  Time_type_choice = new Fl_Choice(x_start, current_y, X_SIZE, Y_SIZE, "Interval type: ");
+  Time_type_choice->add("Gaussian", 0, NULL, (void *)LINEAR_TIME);
+  Time_type_choice->add("Linear", 0, NULL, (void *)GAUSSIAN);
   Time_type_choice->value(0);
-  y_measure += Y_SIZE + Y_SPACING; 
+  current_y += Y_SIZE + Y_SPACING;
 
-  Time_input = new Fl_Int_Input(X_START, y_measure, X_SIZE, Y_SIZE, "Time input");
-  //Time_input->color(FL_DARK_RED);
-  y_measure += Y_SIZE + Y_SPACING;
+  Time_input = new Fl_Int_Input(x_start, current_y, X_SIZE, Y_SIZE, "Time input");
+  // Time_input->color(FL_DARK_RED);
+  current_y += Y_SIZE + Y_SPACING;
 
-  time_group->end(); // needed
+  Time_group->end(); // needed
 
-  Backoff_choice = new Fl_Choice(X_START, y_measure, X_SIZE, Y_SIZE, "Backoff: ");
-  Backoff_choice->add("Linear backoff", 0, NULL, (void*) LINEAR);
-  Backoff_choice->add("Mild", 0, NULL, (void*) MILD);
-  Backoff_choice->add("No backoff", 0, NULL, (void*) NONE);
+  Backoff_choice = new Fl_Choice(x_start, current_y, X_SIZE, Y_SIZE, "Backoff: ");
+  Backoff_choice->add("Linear backoff", 0, NULL, (void *)LINEAR);
+  Backoff_choice->add("Mild", 0, NULL, (void *)MILD);
+  Backoff_choice->add("No backoff", 0, NULL, (void *)NONE);
   Backoff_choice->value(0);
-  y_measure += Y_SIZE + Y_SPACING;
+  current_y += Y_SIZE + Y_SPACING;
 
-    
-  Address_choice = new Fl_Choice(X_START, y_measure, X_SIZE, Y_SIZE, "Address: ");
+  Address_choice = new Fl_Choice(x_start, current_y, X_SIZE, Y_SIZE, "Address: ");
   /**
    * As a choice app would show all found esps mac addresses
    */
@@ -141,19 +133,168 @@ int main() {
   Address_choice->add("0XFF_FF_FF_FF_FF_FF", 0, NULL, NULL);
   Address_choice->add("0XAA_AA_AA_AA_AA_AA", 0, NULL, NULL);
   Address_choice->value(0);
-  y_measure += Y_SIZE + Y_SPACING;
-    
+  current_y += Y_SIZE + Y_SPACING;
 
-  Text_input = new Fl_Input(X_START, y_measure, X_SIZE, Y_SIZE, "Message input");
-  y_measure += Y_SIZE + Y_SPACING;
+  Text_input = new Fl_Input(x_start, current_y, X_SIZE, Y_SIZE, "Message input");
+}
 
-  //G_win->end();
+void instance_found_action(char address[IP_ADDRESS_MAX_SIZE])
+{
+  connection_start(address);
+
+  status s;
+  get_status(address, &s); // todo display starting info
+
+  Fl::lock();
+  esp_interfaces_group->begin();
+  Esp_Group *g = new Esp_Group(
+      address,
+      esp_interfaces_group->x(),
+      esp_interfaces_group->y(),
+      esp_interfaces_group->w(),
+      esp_interfaces_group->h());
+  add_node(address, g);
+  esp_interfaces_group->end();
+  Fl::unlock();
+}
+
+// lots of questions about memory managment with fltk, a lot of this needs
+// to be checked
+void instance_left_action(char address[IP_ADDRESS_MAX_SIZE]){
+
+  Fl::lock();
+  Esp_Group* g = get_group(address);
+  delete g;
+  remove_node(address); // test with Fl::delete_widget() too
+  Fl::unlock();
+}
+
+/**
+ * This callback will send all data, even the ones user has not changed
+ * Only exception is empty text boxes
+ */
+/*
+void send_all_data_sets(Fl_Widget *, void *)
+{
+
+  fltk_set_message();
+
+  printf("After set message\n");
+
+  fltk_set_destination();
+
+  printf("After set destination\n");
+
+  fltk_set_backoff();
+
+  printf("After set Backoff\n");
+
+  fltk_set_time();
+
+  printf("After set time;\nDONE\n\n");
+}
+
+
+*/
+Fl_Menu_Item menutable[] = {
+  {"&Status timer", 0, 0, 0, FL_SUBMENU},
+  {"set interval", 0, 0},
+  {"Undo", 0, 0},
+  {0},
+  {0}
+};
+
+static bool show_message(const char *title, const char *text)
+{
+  struct Message_Params
+  {
+    Message_Params() = default;
+    ~Message_Params()
+    {
+      fl_message_hotspot(hotspot);
+      fl_message_icon()->box(box);
+      fl_message_icon()->color(color);
+      fl_message_icon()->label(label);
+      fl_message_icon()->labelcolor(labelcolor);
+      fl_message_icon()->labelfont(labelfont);
+      fl_message_icon()->show();
+      fl_message_title("");
+    }
+
+    int hotspot = fl_message_hotspot();
+    Fl_Boxtype box = fl_message_icon()->box();
+    Fl_Color color = fl_message_icon()->color();
+    Fl_Color labelcolor = fl_message_icon()->labelcolor();
+    Fl_Font labelfont = fl_message_icon()->labelfont();
+    const char *label = fl_message_icon()->label();
+  } message_params;
+
+  fl_message_hotspot(false);
+  fl_message_icon()->box(FL_ROUND_UP_BOX);
+  fl_message_icon()->color(fl_rgb_color(255, 0, 0));
+  fl_message_icon()->label("X");
+  fl_message_icon()->labelcolor(fl_rgb_color(255, 255, 255));
+  fl_message_icon()->labelfont(FL_HELVETICA_BOLD);
+  fl_message_title(title);
+  return fl_choice("Unhandled exception occured in your application. If you click\n"
+                   "Continue, the application will ignore this error and attempt to continue.\n"
+                   "If you click Quit, the application will close immediately.\n"
+                   "\n"
+                   "%s",
+                   "&Quit", "&Continue", nullptr, text);
+}
+
+int event_dispatch(int event, Fl_Window *window)
+{
+  try
+  {
+    return Fl::handle_(event, window);
+  }
+  catch (const std::exception &e)
+  {
+    if (!show_message("Esp exception", e.what()))
+      exit(-1);
+  }
+  return 0;
+}
+
+void *instance_search_thread_function(void *)
+{
+  start_instance_search();
+}
+
+/**
+ * Items belonging on box but not on area are drawn, but seem impossible to interact
+ */
+int main()
+{
+
+  Fl_Window *G_win = new Fl_Window(1000, 510, "App"); //; G_win->set_modal();
+
+  // Fl_Menu_Bar menubar (0,0,1000,30); menubar.menu(menutable);
+
+  // Fl_Button *send = new Fl_Button(600, 300, 160, 35, "Send all data");
+  // send->callback(send_all_data_sets);
+
+  esp_interfaces_group = new Fl_Tabs(250, 50, 750, 460);
+
+  /*
+
+  */
+  // Create a pthread_t variable to store
+  // thread ID
+  pthread_t thread1;
+  Fl::lock();
+  // Creating a new thread.
+  pthread_create(&thread1, NULL, instance_search_thread_function, NULL);
+
+  // G_win->end();
   G_win->show();
   Fl::event_dispatch(event_dispatch);
   int ret = Fl::run();
 
   printf("Closing connection\n");
-  connection_end();
+  // connection_end();
 
   return ret;
 }

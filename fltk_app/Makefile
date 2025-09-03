@@ -1,22 +1,28 @@
 include Makefile.FLTK
 
 BIN_DIR := bin
-LIB_DIRS := esp_communication
+LIB_DIRS := esp_communication \
+	instances_search
+
+COMM_DIR := esp_communication
+SEARCH_DIR := instances_search
+
 SRC := app.cxx
-TARGET := ${BIN_DIR}/app
+TARGET := $(BIN_DIR)/app
 
 
-${TARGET}: $(LIB_DIRS) utils.o bin
-	$(CXX) $(CXXFLAGS) -o ${TARGET} app.cxx $(LINKFLTK) esp_communication/communication.o utils.o
+compile: $(LIB_DIRS) Esp_Group.o bin
+	$(CXX) $(CXXFLAGS) -o $(TARGET) app.cxx $(LINKFLTK) \
+	esp_communication/communication.o Esp_Group.o instances_search/avahi_search.o $(shell pkg-config --libs avahi-client)
 
 #needs to be phony to force recreation of all, including test
 #TODO change if new rule structure for tests is implemented
 .PHONY: $(LIB_DIRS)
 $(LIB_DIRS):
-	$(MAKE) -C $(LIB_DIRS)
+	$(MAKE) -C $@
 
-utils.o:
-	$(CXX) -c utils.cxx $(CXXFLAGS)
+Esp_Group.o:
+	$(CXX) -c Esp_Group.cxx $(CXXFLAGS)
 
 app.o:
 	$(CXX) $(CXXFLAGS) -c app.cxx -o app.o
@@ -27,4 +33,5 @@ bin:
 .PHONY: clean	
 clean:
 	make clean -C esp_communication
+	make clean -C instances_search
 	rm -f *.o

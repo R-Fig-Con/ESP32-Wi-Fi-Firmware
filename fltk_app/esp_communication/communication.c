@@ -46,11 +46,11 @@ static void add_node(const char* key, int value){
     } 
 }
 
-static int get_sock_fd(const char* value){
+static int get_sock_fd(const char* key){
     pair_node* current = head;
     
     while (1){
-        if (strcmp(current->address, value)){
+        if (strcmp(current->address, key)){
             return current->sockfd;
         }
 
@@ -58,13 +58,13 @@ static int get_sock_fd(const char* value){
     } 
 }
 
-static void remove_node(const char* value){
+static void remove_node(const char* key){
     pair_node* prev = head;
 
     pair_node* current = head->next;
     
     while (1){
-        if (strcmp(current->address, value)){
+        if (strcmp(current->address, key)){
             prev->next = current->next;
             free(current);
             return;
