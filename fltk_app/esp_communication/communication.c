@@ -101,6 +101,9 @@ int set_time(time_option time_type, uint16_t number){
     communication_buffer[CONTROL_BYTES_SIZE + 1] = number >> 8;
     communication_buffer[CONTROL_BYTES_SIZE + 2] = number & 0xFF;
 
+    send(sockfd, communication_buffer, len, 0);
+    printf("Time config sent to ESP node.\n");
+
     return receive_response();
 }
 
