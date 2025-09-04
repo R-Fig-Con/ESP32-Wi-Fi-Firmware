@@ -7,13 +7,15 @@ LIB_DIRS := esp_communication \
 COMM_DIR := esp_communication
 SEARCH_DIR := instances_search
 
-SRC := app.cxx
+SRC := exception_handling.cxx Esp_Group.cxx app.cxx
+OBJ := ${SRC:.cxx=.o}
 TARGET := $(BIN_DIR)/app
 
 
-compile: $(LIB_DIRS) Esp_Group.o  exception_handling.o bin
-	$(CXX) $(CXXFLAGS) -o $(TARGET) app.cxx $(LINKFLTK) \
-	esp_communication/communication.o Esp_Group.o exception_handling.o instances_search/instances_search.o $(shell pkg-config --libs avahi-client)
+compile: $(LIB_DIRS) $(OBJ) bin
+	$(CXX) $(CXXFLAGS) -o $(TARGET) \
+	 esp_communication/communication.o $(OBJ) instances_search/instances_search.o \
+	 $(LINKFLTK) $(shell pkg-config --libs avahi-client)
 
 #needs to be phony to force recreation of all, including test
 #TODO change if new rule structure for tests is implemented
@@ -21,11 +23,8 @@ compile: $(LIB_DIRS) Esp_Group.o  exception_handling.o bin
 $(LIB_DIRS):
 	$(MAKE) -C $@
 
-Esp_Group.o:
-	$(CXX) -c Esp_Group.cxx $(CXXFLAGS)
-
-exception_handling.o:
-	$(CXX) -c exception_handling.cxx $(CXXFLAGS)
+%.o: %.cxx
+	$(CXX) -c $< $(CXXFLAGS)
 
 bin:
 	mkdir bin
