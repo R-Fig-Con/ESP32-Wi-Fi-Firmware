@@ -16,43 +16,42 @@
 #define ADDRESS_SECOND_VALUE "0XFF_FF_FF_FF_FF_FF"
 #define ADDRESS_THIRD_VALUE "0XAA_AA_AA_AA_AA_AA"
 
-class Esp_Group: public Fl_Group
+class Esp_Group : public Fl_Group
 {
 public:
     char *ip_address;
     /**
      * group containing  time inputs, the number and interval type
      */
-    Fl_Group* Time_group;
+    Fl_Group *Time_group;
 
     /**
      * Number time interval
      */
-    Fl_Int_Input* Time_input;
+    Fl_Int_Input *Time_input;
 
     /**
      * Time interval type
      */
-    Fl_Choice* Time_type_choice;
+    Fl_Choice *Time_type_choice;
 
     /**
      * backoff type choice
      */
-    Fl_Choice* Backoff_choice;
+    Fl_Choice *Backoff_choice;
 
     /**
      * Mac destination address
      */
-    Fl_Choice* Address_choice;
+    Fl_Choice *Address_choice;
 
     /**
      * Message text set
      */
-    Fl_Input* Text_input;
+    Fl_Input *Text_input;
 
 public:
-
-    Esp_Group(char* address,int X, int Y, int W, int H);
+    Esp_Group(char *address, int X, int Y, int W, int H);
 
     /**
      * Set time interval, throw exception on fail

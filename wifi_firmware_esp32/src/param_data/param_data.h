@@ -1,10 +1,11 @@
 /**
  * parameter collection for trafficGenerator
-*/
-struct trafficGeneratorTimeParameters{
+ */
+struct trafficGeneratorTimeParameters
+{
   /**
    * flag to communicate if values ware actually given
-  */
+   */
   bool used = false;
 
   uint8_t time_mode;
@@ -12,28 +13,25 @@ struct trafficGeneratorTimeParameters{
   uint16_t waiting_time;
 };
 
-
-
-
-struct csmaControlParameters{
+struct csmaControlParameters
+{
   /**
    * flag to communicate if values ware actually given
-  */
+   */
   bool used = false;
-
 
   /*
    * wether backof is of MILD, Exponentional, or other.
    *
-  */
+   */
   BACKOFF_PROTOCOLS backoff_protocol;
 };
 
-
-struct trafficGeneratorAddressParameter{
+struct trafficGeneratorAddressParameter
+{
   /**
    * flag to communicate if values ware actually given
-  */
+   */
   bool used = false;
 
   /**
@@ -42,18 +40,19 @@ struct trafficGeneratorAddressParameter{
   uint8_t address[MAC_ADDRESS_SIZE];
 };
 
-struct trafficGeneratorDataParameter{
+struct trafficGeneratorDataParameter
+{
   /**
    * flag to communicate if values ware actually given
-  */
+   */
   bool used = false;
 
   /**
    * new message
-   * 
+   *
    * Warning: passing message as a pointer without specific length will require malloc and free
    */
-  char* message = NULL;
+  char *message = NULL;
 
   /**
    * length of message
@@ -61,11 +60,11 @@ struct trafficGeneratorDataParameter{
   uint16_t message_length;
 };
 
-
 /**
  * Contains all possible data used to reconfigure mac protocol
-*/
-struct macProtocolParameters{
+ */
+struct macProtocolParameters
+{
   trafficGeneratorTimeParameters traf_gen_time;
 
   trafficGeneratorAddressParameter traf_gen_addr;
@@ -78,4 +77,4 @@ struct macProtocolParameters{
 /**
  * Handle for a queue containing type macProtocolParameters
  */
-QueueHandle_t protocolParametersQueueHandle = xQueueCreate( 1, sizeof(macProtocolParameters) );
+QueueHandle_t protocolParametersQueueHandle = xQueueCreate(1, sizeof(macProtocolParameters));

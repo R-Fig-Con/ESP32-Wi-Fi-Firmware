@@ -1,87 +1,92 @@
-//#include "../param_data/param_data.h"
+// #include "../param_data/param_data.h"
 
 /**
  * list of backoff protocols from which to choose
-*/
-enum BACKOFF_PROTOCOLS{
-  MILD,
-  LINEAR,
-  NON_EXISTANT,
-  CONSTANT
+ */
+enum BACKOFF_PROTOCOLS
+{
+     MILD,
+     LINEAR,
+     NON_EXISTANT,
+     CONSTANT
 };
 
-class CONTENTION_BACKOFF{
-    protected:
-          /**
-          * minimum value contention window allows
-          */
-          uint16_t minimum;
+class CONTENTION_BACKOFF
+{
+protected:
+     /**
+      * minimum value contention window allows
+      */
+     uint16_t minimum;
 
-          /**
-          * current contention window
-          */
-          uint16_t contentionWindow;
+     /**
+      * current contention window
+      */
+     uint16_t contentionWindow;
 
-          /**
-          * max value contention window allows
-          */
-          uint16_t maximum;
-         
-    public:
+     /**
+      * max value contention window allows
+      */
+     uint16_t maximum;
 
-          /**
-          * returns random backoff value
-          */
-          uint16_t getBackoff();
+public:
+     /**
+      * returns random backoff value
+      */
+     uint16_t getBackoff();
 
-          /**
-          * reduce contention window as desired by implementer
-          */
-          virtual void reduceContentionWindow();
+     /**
+      * reduce contention window as desired by implementer
+      */
+     virtual void reduceContentionWindow();
 
-          /**
-          * increase contention window as desired by implementer
-          */
-          virtual void increaseContentionWindow();
+     /**
+      * increase contention window as desired by implementer
+      */
+     virtual void increaseContentionWindow();
 
-          //virtual destructor
-          virtual ~CONTENTION_BACKOFF() {}
+     // virtual destructor
+     virtual ~CONTENTION_BACKOFF() {}
 };
 
-class LINEAR_BACKOFF: public CONTENTION_BACKOFF{
-     public:
-          LINEAR_BACKOFF();
+class LINEAR_BACKOFF : public CONTENTION_BACKOFF
+{
+public:
+     LINEAR_BACKOFF();
 
-          virtual void reduceContentionWindow();
+     virtual void reduceContentionWindow();
 
-          virtual void increaseContentionWindow();
+     virtual void increaseContentionWindow();
 };
 
-class CONSTANT_BACKOFF: public CONTENTION_BACKOFF{
-     public:
-          CONSTANT_BACKOFF();
+class CONSTANT_BACKOFF : public CONTENTION_BACKOFF
+{
+public:
+     CONSTANT_BACKOFF();
 
-          virtual void reduceContentionWindow();
+     virtual void reduceContentionWindow();
 
-          virtual void increaseContentionWindow();
+     virtual void increaseContentionWindow();
 };
 
-class NO_BACKOFF: public CONTENTION_BACKOFF{
-     public:
-          NO_BACKOFF();
+class NO_BACKOFF : public CONTENTION_BACKOFF
+{
+public:
+     NO_BACKOFF();
 
-          virtual void reduceContentionWindow();
+     virtual void reduceContentionWindow();
 
-          virtual void increaseContentionWindow();
+     virtual void increaseContentionWindow();
 };
 
-class MILD_BACKOFF: public CONTENTION_BACKOFF{
-     public: 
-          MILD_BACKOFF();
+class MILD_BACKOFF : public CONTENTION_BACKOFF
+{
+public:
+     MILD_BACKOFF();
 
-          virtual void reduceContentionWindow();
+     virtual void reduceContentionWindow();
 
-          virtual void increaseContentionWindow();
+     virtual void increaseContentionWindow();
 };
 
-CONTENTION_BACKOFF* getBackoffProtocol(BACKOFF_PROTOCOLS protocol_enum);
+CONTENTION_BACKOFF *getBackoffProtocol(BACKOFF_PROTOCOLS protocol_enum);

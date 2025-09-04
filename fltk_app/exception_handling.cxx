@@ -5,7 +5,6 @@
 
 #include <stdexcept>
 
-
 static bool show_message(const char *title, const char *text)
 {
   struct Message_Params
@@ -45,7 +44,6 @@ static bool show_message(const char *title, const char *text)
                    "%s",
                    "&Quit", "&Continue", nullptr, text);
 }
-
 
 int exception_handler(int event, Fl_Window *window)
 {

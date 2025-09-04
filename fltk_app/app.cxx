@@ -30,15 +30,15 @@ static void add_node(const char *key, Esp_Group *value)
 {
   group_list *current = head;
   if (head == NULL)
-    {
-        current = (group_list*) malloc(sizeof(group_list));
-        current->address = key;
-        current->grp = value;
-        head = current;
-        return;
-    }
-    
-    group_list* next = head->next;
+  {
+    current = (group_list *)malloc(sizeof(group_list));
+    current->address = key;
+    current->grp = value;
+    head = current;
+    return;
+  }
+
+  group_list *next = head->next;
 
   while (1)
   {
@@ -153,8 +153,6 @@ void instance_found_action(char address[IP_ADDRESS_MAX_SIZE])
 {
   connection_start(address);
 
-  printf("Connected\n");
-
   status s;
   get_status(address, &s); // todo display starting info
 
@@ -170,15 +168,17 @@ void instance_found_action(char address[IP_ADDRESS_MAX_SIZE])
       esp_interfaces_group->h());
   add_node(address, g);
   esp_interfaces_group->end();
+  printf("instance found end\n\n");
   Fl::unlock();
 }
 
 // lots of questions about memory managment with fltk, a lot of this needs
 // to be checked
-void instance_left_action(char address[IP_ADDRESS_MAX_SIZE]){
+void instance_left_action(char address[IP_ADDRESS_MAX_SIZE])
+{
 
   Fl::lock();
-  Esp_Group* g = get_group(address);
+  Esp_Group *g = get_group(address);
   delete g;
   remove_node(address); // test with Fl::delete_widget() too
   Fl::unlock();
@@ -212,12 +212,11 @@ void send_all_data_sets(Fl_Widget *, void *)
 
 */
 Fl_Menu_Item menutable[] = {
-  {"&Status timer", 0, 0, 0, FL_SUBMENU},
-  {"set interval", 0, 0},
-  {"Undo", 0, 0},
-  {0},
-  {0}
-};
+    {"&Status timer", 0, 0, 0, FL_SUBMENU},
+    {"set interval", 0, 0},
+    {"Undo", 0, 0},
+    {0},
+    {0}};
 
 void *instance_search_thread_function(void *)
 {
@@ -241,7 +240,6 @@ int main()
 
   on_instance_found_event(instance_found_action);
   on_instance_left_event(instance_left_action);
-
 
   // Create a pthread_t variable to store
   // thread ID

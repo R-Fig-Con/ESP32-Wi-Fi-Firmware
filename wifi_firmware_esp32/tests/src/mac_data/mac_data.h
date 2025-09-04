@@ -4,7 +4,7 @@
 struct
 {
     /**
-     * log of start time for the mac protocol. 
+     * log of start time for the mac protocol.
      * Used to calculate for how low protocol is running on device
      * Interpreted as milliseconds
      */

@@ -7,7 +7,8 @@
  * https://github.com/gammasoft71/Examples_FLTK/blob/master/src/Applications/Application_And_Exception/
  */
 
-void Esp_Group::fltk_get_status(){
+void Esp_Group::fltk_get_status()
+{
   status s;
   get_status(this->ip_address, &s);
 }
@@ -17,7 +18,7 @@ void Esp_Group::fltk_set_time()
   const char *time_str = Time_input->value();
   if (time_str[0] != '\0')
   {
-    if (!set_time(this->ip_address, (time_option) Time_type_choice->value(), (uint16_t)atoi(time_str)))
+    if (!set_time(this->ip_address, (time_option)Time_type_choice->value(), (uint16_t)atoi(time_str)))
       throw std::invalid_argument{"Exception generated"};
   }
 }
@@ -25,7 +26,7 @@ void Esp_Group::fltk_set_time()
 void Esp_Group::fltk_set_destination()
 {
   // added conversion due to warnings, TODO check if is bad
-  //Fl_Choice s = this.Backoff_choice;
+  // Fl_Choice s = this.Backoff_choice;
   switch (Address_choice->value())
   {
   case ADDRESS_FIRST_CHOICE:
@@ -61,6 +62,6 @@ void Esp_Group::fltk_set_message()
 
 void Esp_Group::fltk_set_backoff()
 {
-  if (!set_backoff(this->ip_address, (backoff_option) Backoff_choice->value()))
+  if (!set_backoff(this->ip_address, (backoff_option)Backoff_choice->value()))
     throw std::invalid_argument{"Exception generated"};
 }
