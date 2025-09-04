@@ -35,15 +35,27 @@ static address_node* head = NULL;
 
 static void add_node(char* value){
     address_node* current = head;
+
+    if (head == NULL)
+    {
+        current = (address_node*) malloc(sizeof(address_node));
+        current->address = value;
+        head = current;
+        return;
+    }
+    
+    address_node* next = head->next;
     
     while (1){
-        if (current == NULL){
-            current = (address_node*) malloc(sizeof(address_node));
-            current->address = value;
+        if (next== NULL){
+            next= (address_node*) malloc(sizeof(address_node));
+            next->address = value;
+            current->next = next;
             return;
         }
 
         current = current->next;
+        next = next->next;
     } 
 }
 

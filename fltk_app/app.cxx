@@ -29,18 +29,30 @@ static group_list *head = NULL;
 static void add_node(const char *key, Esp_Group *value)
 {
   group_list *current = head;
+  if (head == NULL)
+    {
+        current = (group_list*) malloc(sizeof(group_list));
+        current->address = key;
+        current->grp = value;
+        head = current;
+        return;
+    }
+    
+    group_list* next = head->next;
 
   while (1)
   {
-    if (current == NULL)
+    if (next == NULL)
     {
-      current = (group_list *)malloc(sizeof(group_list));
-      current->address = key;
-      current->grp = value;
+      next = (group_list *)malloc(sizeof(group_list));
+      next->address = key;
+      next->grp = value;
+      current->next = next;
       return;
     }
 
     current = current->next;
+    next = next->next;
   }
 }
 
@@ -141,8 +153,12 @@ void instance_found_action(char address[IP_ADDRESS_MAX_SIZE])
 {
   connection_start(address);
 
+  printf("Connected\n");
+
   status s;
   get_status(address, &s); // todo display starting info
+
+  printf("REceived status\n");
 
   Fl::lock();
   esp_interfaces_group->begin();

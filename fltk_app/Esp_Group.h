@@ -55,28 +55,27 @@ public:
     Esp_Group(char* address,int X, int Y, int W, int H);
 
     /**
-     * Set time interval
+     * Set time interval, throw exception on fail
      */
     void fltk_set_time();
 
     /**
-     * Set mac address
+     * Set mac address, throw exception on fail
      */
     void fltk_set_destination();
 
     /**
-     * Send data to Esp. Call after communication_start and
-     * before communication_end
+     * Send data to Esp, throw exception on fail
      */
     void fltk_set_message();
 
     /**
-     * Set the backoff algorithm
+     * Set the backoff algorithm, throw exception on fail
      */
     void fltk_set_backoff();
 
     /**
-     * Get status updatefrom the esp device
+     * Get status updatefrom the esp device, throw exception on fail
      */
     void fltk_get_status();
 };

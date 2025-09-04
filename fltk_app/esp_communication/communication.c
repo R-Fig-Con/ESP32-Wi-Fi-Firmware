@@ -33,32 +33,48 @@ static pair_node* head = NULL;
 
 static void add_node(const char* key, int value){
     pair_node* current = head;
+    if (head == NULL)
+    {
+        current = (pair_node*) malloc(sizeof(pair_node));
+        current->address = key;
+        current->sockfd = value;
+        head = current;
+        return;
+    }
+    
+    pair_node* next = head->next;
+    
     
     while (1){
-        if (current == NULL){
-            current = (pair_node*) malloc(sizeof(pair_node));
-            current->address = key;
-            current->sockfd = value;
+        if (next == NULL){
+            next = (pair_node*) malloc(sizeof(pair_node));
+            next->address = key;
+            next->sockfd = value;
+            current->next = next;
             return;
         }
 
         current = current->next;
+        next = next->next;
     } 
 }
 
 static int get_sock_fd(const char* key){
     pair_node* current = head;
+
+    printf("On socket get head is null? %p\n", current);
     
     while (1){
         if (strcmp(current->address, key)){
             return current->sockfd;
         }
-
+        printf("Current add :%s is different from fun param %s\n", current->address, key);
         current = current->next;
     } 
 }
 
 static void remove_node(const char* key){
+    //assumes it does not remove when it does not exist
     pair_node* prev = head;
 
     pair_node* current = head->next;
