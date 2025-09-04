@@ -11,7 +11,7 @@ SRC := app.cxx
 TARGET := $(BIN_DIR)/app
 
 
-compile: $(LIB_DIRS) Esp_Group.o bin
+compile: $(LIB_DIRS) Esp_Group.o  exception_handling.o bin
 	$(CXX) $(CXXFLAGS) -o $(TARGET) app.cxx $(LINKFLTK) \
 	esp_communication/communication.o Esp_Group.o exception_handling.o instances_search/instances_search.o $(shell pkg-config --libs avahi-client)
 
