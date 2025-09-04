@@ -102,13 +102,15 @@ static void resolve_callback(
         case AVAHI_RESOLVER_FOUND: {
             char a[AVAHI_ADDRESS_STR_MAX], *t;
 
-            fprintf(stderr, "Service '%s' of type '%s' in domain '%s':\n", name, type, domain);
-
             avahi_address_snprint(a, sizeof(a), address);
+
+            fprintf(stderr, "Service '%s' of type '%s' in domain '%s with address'%s:\n", name, type, domain, a);
 
             char* address = (char*) malloc(IP_ADDRESS_MAX_SIZE);
             memcpy(address, name, strlen(name) + 1);
             add_node(address);
+
+            printf("Calling callback\n");
 
             found(address);
 

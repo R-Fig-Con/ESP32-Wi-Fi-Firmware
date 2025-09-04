@@ -1,5 +1,7 @@
 #include "Esp_Group.h"
 
+#include <stdexcept>
+
 /**
  * Exception logic handling extracted from
  * https://github.com/gammasoft71/Examples_FLTK/blob/master/src/Applications/Application_And_Exception/

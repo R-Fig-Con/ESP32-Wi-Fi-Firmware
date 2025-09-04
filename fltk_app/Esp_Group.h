@@ -7,8 +7,6 @@
 #include <FL/Fl_Choice.H>
 #include <FL/Fl_Group.H>
 
-#include <stdexcept>
-
 #include "./esp_communication/communication.h"
 
 #define ADDRESS_FIRST_CHOICE 1

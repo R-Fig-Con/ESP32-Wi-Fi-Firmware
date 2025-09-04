@@ -1,8 +1,6 @@
 #include <stdlib.h>  // atoi
 #include <pthread.h> // threads
 
-#include <FL/fl_message.H> // various error showing messages
-
 #include <FL/Fl_Sys_Menu_Bar.H> //top menu bar
 #include <FL/Fl_Button.H>
 #include <FL/Fl_Window.H>
@@ -11,6 +9,7 @@
 
 #include "Esp_Group.h"
 #include "instances_search/instances_search.h"
+#include "exception_handling.h"
 
 #define X_SIZE 150
 #define Y_SIZE 25
@@ -204,60 +203,6 @@ Fl_Menu_Item menutable[] = {
   {0}
 };
 
-static bool show_message(const char *title, const char *text)
-{
-  struct Message_Params
-  {
-    Message_Params() = default;
-    ~Message_Params()
-    {
-      fl_message_hotspot(hotspot);
-      fl_message_icon()->box(box);
-      fl_message_icon()->color(color);
-      fl_message_icon()->label(label);
-      fl_message_icon()->labelcolor(labelcolor);
-      fl_message_icon()->labelfont(labelfont);
-      fl_message_icon()->show();
-      fl_message_title("");
-    }
-
-    int hotspot = fl_message_hotspot();
-    Fl_Boxtype box = fl_message_icon()->box();
-    Fl_Color color = fl_message_icon()->color();
-    Fl_Color labelcolor = fl_message_icon()->labelcolor();
-    Fl_Font labelfont = fl_message_icon()->labelfont();
-    const char *label = fl_message_icon()->label();
-  } message_params;
-
-  fl_message_hotspot(false);
-  fl_message_icon()->box(FL_ROUND_UP_BOX);
-  fl_message_icon()->color(fl_rgb_color(255, 0, 0));
-  fl_message_icon()->label("X");
-  fl_message_icon()->labelcolor(fl_rgb_color(255, 255, 255));
-  fl_message_icon()->labelfont(FL_HELVETICA_BOLD);
-  fl_message_title(title);
-  return fl_choice("Unhandled exception occured in your application. If you click\n"
-                   "Continue, the application will ignore this error and attempt to continue.\n"
-                   "If you click Quit, the application will close immediately.\n"
-                   "\n"
-                   "%s",
-                   "&Quit", "&Continue", nullptr, text);
-}
-
-int event_dispatch(int event, Fl_Window *window)
-{
-  try
-  {
-    return Fl::handle_(event, window);
-  }
-  catch (const std::exception &e)
-  {
-    if (!show_message("Esp exception", e.what()))
-      exit(-1);
-  }
-  return 0;
-}
-
 void *instance_search_thread_function(void *)
 {
   start_instance_search();
@@ -278,9 +223,10 @@ int main()
 
   esp_interfaces_group = new Fl_Tabs(250, 50, 750, 460);
 
-  /*
+  on_instance_found_event(instance_found_action);
+  on_instance_left_event(instance_left_action);
 
-  */
+
   // Create a pthread_t variable to store
   // thread ID
   pthread_t thread1;
@@ -290,7 +236,7 @@ int main()
 
   // G_win->end();
   G_win->show();
-  Fl::event_dispatch(event_dispatch);
+  Fl::event_dispatch(exception_handler);
   int ret = Fl::run();
 
   printf("Closing connection\n");
