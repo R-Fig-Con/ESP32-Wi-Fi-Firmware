@@ -62,7 +62,7 @@ static Esp_Group *get_group(const char *key)
 
   while (1)
   {
-    if (strcmp(current->address, key))
+    if (!strcmp(current->address, key))
     {
       return current->grp;
     }
@@ -79,7 +79,7 @@ static void remove_node(const char *key)
 
   while (1)
   {
-    if (strcmp(current->address, key))
+    if (!strcmp(current->address, key))
     {
       prev->next = current->next;
       free(current);
@@ -108,8 +108,8 @@ Esp_Group::Esp_Group(char *address, int X, int Y, int W, int H) : Fl_Group(X, Y,
 
   int current_y = Y + Y_SPACING;
 
-  int x_start = X;
-  this->Time_group = new Fl_Group(x_start, current_y, X_SIZE + 100, Y_SIZE + 100, "BOX DARK RED");
+  int x_start = X + 150;
+  this->Time_group = new Fl_Group(x_start, current_y, X_SIZE + 100, Y_SIZE + 100, "Time group");
   // time_group->begin();// alredy done by default
   Time_group->color(FL_DARK_RED);
   Time_group->redraw();
@@ -184,71 +184,45 @@ void instance_left_action(char address[IP_ADDRESS_MAX_SIZE])
   Fl::unlock();
 }
 
-/**
- * This callback will send all data, even the ones user has not changed
- * Only exception is empty text boxes
- */
-/*
-void send_all_data_sets(Fl_Widget *, void *)
-{
-
-  fltk_set_message();
-
-  printf("After set message\n");
-
-  fltk_set_destination();
-
-  printf("After set destination\n");
-
-  fltk_set_backoff();
-
-  printf("After set Backoff\n");
-
-  fltk_set_time();
-
-  printf("After set time;\nDONE\n\n");
-}
-
-
-*/
 Fl_Menu_Item menutable[] = {
     {"&Status timer", 0, 0, 0, FL_SUBMENU},
-    {"set interval", 0, 0},
-    {"Undo", 0, 0},
-    {0},
+      {"set interval", 0, 0},
+      {"Undo", 0, 0},
+      {0},
     {0}};
 
 void *instance_search_thread_function(void *)
 {
   start_instance_search();
+
+  return NULL;
 }
 
 /**
  * Items belonging on box but not on area are drawn, but seem impossible to interact
  */
-int main()
+int main() //valgrind --leak-check=full ./bin/app
 {
 
-  Fl_Window *G_win = new Fl_Window(1000, 510, "App"); //; G_win->set_modal();
+  Fl::scheme("gtk+");
+  Fl_Window *G_win = new Fl_Window(1300, 750, "App"); //; G_win->set_modal();
 
   // Fl_Menu_Bar menubar (0,0,1000,30); menubar.menu(menutable);
 
   // Fl_Button *send = new Fl_Button(600, 300, 160, 35, "Send all data");
   // send->callback(send_all_data_sets);
 
-  esp_interfaces_group = new Fl_Tabs(250, 50, 750, 460);
+  esp_interfaces_group = new Fl_Tabs(50, 50, 750, 460);
 
   on_instance_found_event(instance_found_action);
   on_instance_left_event(instance_left_action);
 
-  // Create a pthread_t variable to store
-  // thread ID
-  pthread_t thread1;
+  pthread_t search_thread;
   Fl::lock();
   // Creating a new thread.
-  pthread_create(&thread1, NULL, instance_search_thread_function, NULL);
+  pthread_create(&search_thread, NULL, instance_search_thread_function, NULL);
 
-  // G_win->end();
+  G_win->resizable(G_win);
   G_win->show();
   Fl::event_dispatch(exception_handler);
   int ret = Fl::run();

@@ -68,7 +68,7 @@ static int get_sock_fd(const char *key)
 
     while (1)
     {
-        if (strcmp(current->address, key))
+        if (!strcmp(current->address, key))
         {
             return current->sockfd;
         }
@@ -85,7 +85,7 @@ static void remove_node(const char *key)
 
     while (1)
     {
-        if (strcmp(current->address, key))
+        if (!strcmp(current->address, key))
         {
             prev->next = current->next;
             free(current);

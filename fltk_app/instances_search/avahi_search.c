@@ -71,7 +71,7 @@ static void remove_node(char *value)
 
     while (1)
     {
-        if (strcmp(current->address, value))
+        if (!strcmp(current->address, value))
         {
             prev->next = current->next;
             free(current->address);
