@@ -76,11 +76,11 @@ static void remove_node(const char *key)
   group_list *prev = head;
 
   if (!strcmp(prev->address, key))
-    {
-        head = head->next;
-        free(prev);
-        return;
-    }
+  {
+    head = head->next;
+    free(prev);
+    return;
+  }
 
   group_list *current = head->next;
 
@@ -111,7 +111,7 @@ Fl_Tabs *esp_interfaces_group;
 Esp_Group::Esp_Group(char *address, int X, int Y, int W, int H) : Fl_Group(X, Y, W, H, "Text")
 {
 
-  esp_interfaces_group->begin();
+  // esp_interfaces_group->begin();
 
   this->ip_address = address;
 
@@ -160,10 +160,12 @@ Esp_Group::Esp_Group(char *address, int X, int Y, int W, int H) : Fl_Group(X, Y,
 
 void instance_found_action(char address[IP_ADDRESS_MAX_SIZE])
 {
-  connection_start(address);
+  if (!connection_start(address))
+  {
+    return;
+  }
 
-  status s;
-  get_status(address, &s); // todo display starting info
+  // status s; //get_status(address, &s); // todo display starting info
 
   printf("REceived status\n");
 
@@ -172,7 +174,7 @@ void instance_found_action(char address[IP_ADDRESS_MAX_SIZE])
   Esp_Group *g = new Esp_Group(
       address,
       esp_interfaces_group->x(),
-      esp_interfaces_group->y(),
+      esp_interfaces_group->y() + 25, // following tabs-simple.cxx example
       esp_interfaces_group->w(),
       esp_interfaces_group->h());
   add_node(address, g);
@@ -195,9 +197,9 @@ void instance_left_action(char address[IP_ADDRESS_MAX_SIZE])
 
 Fl_Menu_Item menutable[] = {
     {"&Status timer", 0, 0, 0, FL_SUBMENU},
-      {"set interval", 0, 0},
-      {"Undo", 0, 0},
-      {0},
+    {"set interval", 0, 0},
+    {"Undo", 0, 0},
+    {0},
     {0}};
 
 void *instance_search_thread_function(void *)
@@ -210,18 +212,14 @@ void *instance_search_thread_function(void *)
 /**
  * Items belonging on box but not on area are drawn, but seem impossible to interact
  */
-int main() //valgrind --leak-check=full ./bin/app
+int main() // valgrind --leak-check=full ./bin/app
 {
-
   Fl::scheme("gtk+");
-  Fl_Window *G_win = new Fl_Window(1300, 750, "App"); //; G_win->set_modal();
+  Fl_Window *G_win = new Fl_Window(1000, 750, "App"); //; G_win->set_modal();
 
   // Fl_Menu_Bar menubar (0,0,1000,30); menubar.menu(menutable);
 
-  // Fl_Button *send = new Fl_Button(600, 300, 160, 35, "Send all data");
-  // send->callback(send_all_data_sets);
-
-  esp_interfaces_group = new Fl_Tabs(50, 50, 750, 460);
+  esp_interfaces_group = new Fl_Tabs(50, 50, 750, 600);
 
   on_instance_found_event(instance_found_action);
   on_instance_left_event(instance_left_action);
@@ -236,8 +234,37 @@ int main() //valgrind --leak-check=full ./bin/app
   Fl::event_dispatch(exception_handler);
   int ret = Fl::run();
 
-  printf("Closing connection\n");
-  // connection_end();
-
   return ret;
 }
+
+/*
+  {
+    Fl_Group *aaa = new Fl_Group(50,75,750-20,600-45,"Aaaewq");
+      {
+        // Put some different buttons into the group, which will be shown
+        // when the tab is selected.
+        Fl_Button *b1 = new Fl_Button(90, 100,90,25,"Button A1"); b1->color(88+1);
+        Fl_Button *b2 = new Fl_Button(90, 130,90,25,"Button A2"); b2->color(88+2);
+        Fl_Button *b3 = new Fl_Button(90,160,90,25,"Button A3"); b3->color(88+3);
+      }
+      aaa->end();
+
+      // ADD THE "Bbb" TAB
+      //   Same details as above.
+      //
+      Fl_Group *bbb = new Fl_Group(50,75,750-10, 600-35,"Bbbqwe");
+      {
+        // Put some different buttons into the group, which will be shown
+        // when the tab is selected.
+        Fl_Button *b1 = new Fl_Button( 90,100,90,25,"Button B1"); b1->color(88+1);
+        Fl_Button *b2 = new Fl_Button(190,100,90,25,"Button B2"); b2->color(88+3);
+        Fl_Button *b3 = new Fl_Button(290,100,90,25,"Button B3"); b3->color(88+5);
+        Fl_Button *b4 = new Fl_Button( 90,130,90,25,"Button B4"); b4->color(88+2);
+        Fl_Button *b5 = new Fl_Button(190,130,90,25,"Button B5"); b5->color(88+4);
+        Fl_Button *b6 = new Fl_Button(290,130,90,25,"Button B6"); b6->color(88+6);
+      }
+      bbb->end();
+  }
+  esp_interfaces_group->end();
+
+  */
