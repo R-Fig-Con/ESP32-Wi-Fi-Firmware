@@ -81,6 +81,13 @@ static void remove_node(const char *key)
     // assumes it does not remove when it does not exist
     pair_node *prev = head;
 
+    if (!strcmp(prev->address, key))
+    {
+        head = head->next;
+        free(prev);
+        return;
+    }
+
     pair_node *current = head->next;
 
     while (1)

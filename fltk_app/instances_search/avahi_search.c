@@ -67,6 +67,14 @@ static void remove_node(char *value)
 {
     address_node *prev = head;
 
+    if (!strcmp(prev->address, value))
+    {
+        head = head->next;
+        free(prev->address);
+        free(prev);
+        return;
+    }
+
     address_node *current = head->next;
 
     while (1)

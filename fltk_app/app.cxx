@@ -75,6 +75,13 @@ static void remove_node(const char *key)
 {
   group_list *prev = head;
 
+  if (!strcmp(prev->address, key))
+    {
+        head = head->next;
+        free(prev);
+        return;
+    }
+
   group_list *current = head->next;
 
   while (1)
@@ -101,8 +108,10 @@ static void remove_node(const char *key)
  */
 Fl_Tabs *esp_interfaces_group;
 
-Esp_Group::Esp_Group(char *address, int X, int Y, int W, int H) : Fl_Group(X, Y, W, H)
+Esp_Group::Esp_Group(char *address, int X, int Y, int W, int H) : Fl_Group(X, Y, W, H, "Text")
 {
+
+  esp_interfaces_group->begin();
 
   this->ip_address = address;
 
