@@ -11,6 +11,10 @@ SRC := exception_handling.cxx Esp_Group.cxx app.cxx
 OBJ := ${SRC:.cxx=.o}
 TARGET := $(BIN_DIR)/app
 
+#uncomment line below so make uses fake connections for esps
+#due to makefile rules, call clean to ensure fake .o files will not stop the creation of real .o
+FAKE_CONNECTION_RULE := compile_fake 
+
 
 compile: $(LIB_DIRS) $(OBJ) bin
 	$(CXX) $(CXXFLAGS) -o $(TARGET) \
@@ -21,7 +25,7 @@ compile: $(LIB_DIRS) $(OBJ) bin
 #TODO change if new rule structure for tests is implemented
 .PHONY: $(LIB_DIRS)
 $(LIB_DIRS):
-	$(MAKE) -C $@
+	$(MAKE) $(FAKE_CONNECTION_RULE) -C $@
 
 %.o: %.cxx
 	$(CXX) -c $< $(CXXFLAGS)

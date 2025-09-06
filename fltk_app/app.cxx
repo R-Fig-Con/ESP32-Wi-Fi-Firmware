@@ -167,8 +167,6 @@ void instance_found_action(char address[IP_ADDRESS_MAX_SIZE])
 
   // status s; //get_status(address, &s); // todo display starting info
 
-  printf("REceived status\n");
-
   Fl::lock();
   esp_interfaces_group->begin();
   Esp_Group *g = new Esp_Group(
@@ -192,6 +190,7 @@ void instance_left_action(char address[IP_ADDRESS_MAX_SIZE])
   Esp_Group *g = get_group(address);
   delete g;
   remove_node(address); // test with Fl::delete_widget() too
+  printf("instance left end\n");
   Fl::unlock();
 }
 
@@ -212,7 +211,7 @@ void *instance_search_thread_function(void *)
 /**
  * Items belonging on box but not on area are drawn, but seem impossible to interact
  */
-int main() // valgrind --leak-check=full ./bin/app
+int main() // valgrind --leak-check=full -s --show-leak-kinds=all ./bin/app
 {
   Fl::scheme("gtk+");
   Fl_Window *G_win = new Fl_Window(1000, 750, "App"); //; G_win->set_modal();
@@ -233,6 +232,9 @@ int main() // valgrind --leak-check=full ./bin/app
   G_win->show();
   Fl::event_dispatch(exception_handler);
   int ret = Fl::run();
+
+  delete esp_interfaces_group;
+  delete G_win;
 
   return ret;
 }

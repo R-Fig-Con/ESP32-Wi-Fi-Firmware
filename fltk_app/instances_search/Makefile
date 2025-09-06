@@ -5,5 +5,9 @@ include ../Makefile.FLTK
 compile:
 	$(CXX) -c avahi_search.c -o instances_search.o $(shell pkg-config --cflags avahi-client)
 
+
+compile_fake:
+	$(CXX) -c fake_search.c -o instances_search.o
+
 clean: 
 	rm -f *.o
