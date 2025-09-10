@@ -40,6 +40,7 @@ void setup()
 {
 
   // Serial communication for debug
+  // should match value on .ini file
   Serial.begin(57600);
 
   // Wifi, for getting the MAC address.

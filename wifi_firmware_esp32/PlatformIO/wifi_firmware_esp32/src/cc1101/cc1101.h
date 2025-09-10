@@ -2,8 +2,6 @@
 #define CC1101_DRIVER_H
 
 //============ Includes ====================
-#include "arduinoGlue.h"
-#include "radio_pins.h"
 /**
  * Copyright (c) 2011 panStamp <contact@panstamp.com>
  * Copyright (c) 2016 Tyler Sommer <contact@tylersommer.pro>
@@ -31,6 +29,8 @@
 
 #include <SPI.h>
 #include "ccpacket.h"
+#include "arduinoGlue.h"
+#include "radio_pins.h"
 
 /**
  * Carrier frequencies
