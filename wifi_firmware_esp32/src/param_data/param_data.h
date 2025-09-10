@@ -52,7 +52,7 @@ struct trafficGeneratorDataParameter
    *
    * Warning: passing message as a pointer without specific length will require malloc and free
    */
-  char *message = NULL;
+  char *message = 0;
 
   /**
    * length of message
