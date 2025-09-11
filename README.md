@@ -4,7 +4,7 @@ Developed By:
  - Rafael Conceição, student number 41486
  - Eduardo Tavares, student number 49454
 
- # Branch specific information
+# Branch specific information
 
 This branch focuses on developing the connection between the esp32 and the application.
 Unlike the main branch, all devices will use a previously existing network. With the usage
@@ -17,8 +17,12 @@ Connecting the esp-32 node to your local network will require your compiled code
 your internate name and password. To avoid it being shared through github, these two pieces of
 information were put on a header file, and added to a gitignore.
 
-This means anyone trying to run the code ought to recreate the file found in [wifi_firmware_esp32/src/wifi_config/.gitignore](here). 2 string defines WIFI_NAME and WIFI_PASSWORD is all its needed (to confirm:
+This means anyone trying to run the code ought to recreate the file found in [here](wifi_firmware_esp32/src/wifi_config/.gitignore). 2 string defines WIFI_NAME and WIFI_PASSWORD is all its needed (to confirm:
 if no password is used it can be NULL)
+
+## Compilation
+
+Replaced arduino tools with platformio. See more information [here](docs/README.md).
 
 ## Terminal app
 

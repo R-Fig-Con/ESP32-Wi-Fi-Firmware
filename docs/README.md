@@ -20,55 +20,44 @@ Some changes such as the GDOx pin connection on the ESP side may be possible, if
 
 ## Setup Environment and Run
 
+This branch has changed to use platformio extension in vscode.
+See 
+[this tutorial](https://docs.platformio.org/en/latest/integration/ide/vscode.html) for more guided information
+
 Steps to run this project:
 
 1. Clone this repo into your machine
-2. Install Arduino IDE 2.0
-3. In the IDE, install ["esp32" by Espressif Systems](https://github.com/espressif/arduino-esp32) in Boards Manager
-4. Open the `wifi_firmware_esp32` folder from project in the IDE
-5. Connect the ESP32 to your machine
-6. At the top of the IDE:
-- Select the correct board (DOIT ESP32 DEVKIT V1)
-- Select the port where the ESP is connected
-7. Press upload
+2. Install platformio ide extension (extension id platformio.platformio-ide)
+3. Open a platformio project with [this folder](../wifi_firmware_esp32/) as base, the configuration ini
+file in base installation of board should be automatic
+4. Connect the ESP32 to your machine
+6. At the bottom of the vs code IDE press platformio upload. 
 
-To view debug output, you must uncomment line #31 in the file `wifi_firmware_esp32.ino`, and then in the IDE go into **Tools >  Serial Monitor**. 
+To view debug output, you must uncomment #define MONITOR_DEBUG_MODE on [this file](../wifi_firmware_esp32/include/arduinoGlue.h),
+and then in the IDE go into **Tools >  Serial Monitor**.  May be changed to be on [inii configuration file](../wifi_firmware_esp32/platformio.ini)
+on the build_flags options. 
 
-### Arduino-cli tool
+# GUI application
 
-As an alternative to using arduino IDE, the command line program [arduino-cli](https://docs.arduino.cc/arduino-cli/) can be used.
-Installation for esp32 board through arduino-cli is arduino-cli core install arduino:esp32
+This app uses a combination of fltk (version 1.4.4) found [here](https://github.com/fltk/fltk), installed with cmake as instructed
+on their README.md
 
-Arduino-cli does does not have an equivalent to the serial monitor of the IDE, allowing to see the serial communication
-done with the Esp-32. Since communication in this project  is from Esp->Computer, a simple continuous read loop created
-with python's pyserial will suffice.
+## Connect to the ESP
 
+Esp's were changeed to be part of the normal network, which will make unfeasable the knowledge of their ip addresses a priori. Check if
+your esp device is capable of using 5G networks before trying to connect them to one.
 
-#### Arduino-cli commands
+As a way to find their addresses, avahi client is to be installed on a linux system with the command 
+sudo apt install libavahi-client-dev libavahi-common-dev
 
-To be run on the base of this git repository
-
-Copmilation: arduino-cli compile --fqbn esp32:esp32:esp32doit-devkit-v1 ./wifi_firmware_esp32
-
-Upload: arduino-cli upload -p [port name, ie: COM3] --fqbn esp32:esp32:esp32doit-devkit-v1 ./wifi_firmware_esp32
-
-## Application
-
-This terminal based application allows for the configuration of the individual ESPs. It was built and tested on a Linux environment.
-
-### Connect to the ESP
-
-As the ESPs are set up as access points, you must first connect to the ESP you wish to configure through your machine's network manager.
-
-- The SSID will start with `ESP32-` and be followed by the MAC address of the ESP.
-
-- The password is defined in [`wifi_config.h`](wifi_firmware_esp32/src/wifi_config/wifi_config.h); the default value is `ESP32-firmware`.
+- The name and password are defined in [`this folder`](../wifi_firmware_esp32/src/wifi_config/); Recreate the file
+hidden by its gitignore to add your values.
 
 ### Build and Run
 
 To build an run the application:
 
-1. Go into the `terminal_app` directory.
+1. Go into the [fltk](../fltk_app/) directory.
 
 2. Run the makefile with:
 
@@ -76,9 +65,8 @@ To build an run the application:
 
 3. Run the binary with:
 
-    ./bin/config_esp
+    ./bin/app
 
 ### Usage
 
-- Type `h` to see all available options.
-- Type `x` to close the connection and terminate the application.
+In development. TODO update

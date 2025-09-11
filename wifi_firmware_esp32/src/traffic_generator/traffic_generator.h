@@ -1,17 +1,14 @@
-#include "./send_protocol.h"
+#ifndef TRAFFIC_GENERATOR_H
+#define TRAFFIC_GENERATOR_H
 
-/**
- * Module to generate packet traffic
- */
-
-// Global constant
-#define MAC_ADDRESS_SIZE (uint8_t)6
+#include "../send_protocol/send_protocol.h"
+#include "stdint.h"
+#include "ccpacket.h"
+#include "mac_address_size.h"
 
 // Time interval modes
 #define TRF_GEN_CONST (uint8_t)0 // Sets waiting time between packets to be constant
 #define TRF_GEN_GAUSS (uint8_t)1 // Sets waiting time between packets to be decided according a gaussian distribution
-
-#define TRF_GEN_MAX_MSG_LEN 128 // Better to have a small message and just repeat it several times if we want to send a large packet (uses less memory).
 
 // identifying values in frame control. Taken from book, page 100
 // encapsulates type and subtype
@@ -61,6 +58,7 @@ struct ieeeFrame
   uint8_t payload[0];
 };
 
+
 class TRAFFIC_GEN
 {
 private:
@@ -88,6 +86,7 @@ private:
    */
   bool running;
 
+  // ensure it is properly deleted on substitution
   SEND_PROTOCOL *send_protocol;
 
   /**
@@ -192,3 +191,5 @@ public:
    */
   void setMessage(char *message, uint16_t message_length);
 };
+
+#endif

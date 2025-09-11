@@ -1,3 +1,5 @@
+#include "stdint.h"
+
 #define ESP_RESP_OK (char)0x0
 #define ESP_RESP_ERROR (char)0x1
 
