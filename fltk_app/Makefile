@@ -28,7 +28,7 @@ $(LIB_DIRS):
 	$(MAKE) $(FAKE_CONNECTION_RULE) -C $@
 
 %.o: %.cxx
-	$(CXX) -c $< $(CXXFLAGS)
+	$(CXX) -c $< $(CXXFLAGS) -ggdb
 
 bin:
 	mkdir bin

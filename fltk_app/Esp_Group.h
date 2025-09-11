@@ -18,8 +18,24 @@
 
 class Esp_Group : public Fl_Group
 {
-public:
+private:
+    /**
+     * status received. Concerning setup_values
+     */
+    status setup_values;
+
+    /**
+     * Identifying ip address
+     */
+
     char *ip_address;
+
+    /**
+     * callback for input boxes (does not include multiple choice)
+     */
+    //static void input_callback(Fl_Widget *widget, void *);
+
+public:
     /**
      * group containing  time inputs, the number and interval type
      */
@@ -51,7 +67,7 @@ public:
     Fl_Input *Text_input;
 
 public:
-    Esp_Group(char *address, int X, int Y, int W, int H);
+    Esp_Group(char *address, status s, int X, int Y, int W, int H);
 
     /**
      * Set time interval, throw exception on fail

@@ -7,7 +7,7 @@ compile:
 
 
 compile_fake:
-	$(CXX) -c fake_search.c -o instances_search.o
+	$(CXX) -c fake_search.c -o instances_search.o -ggdb
 
 clean: 
 	rm -f *.o
