@@ -1,4 +1,4 @@
-//#include <ESPmDNS.h>                              		//-- moved to arduinoGlue.h
+#include <ESPmDNS.h>                              		//-- moved to arduinoGlue.h
 #include "wifi_config.h"
 
 #include "arduinoGlue.h"

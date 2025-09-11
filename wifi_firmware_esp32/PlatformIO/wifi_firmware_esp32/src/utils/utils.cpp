@@ -5,6 +5,8 @@
 #include "radio_interruption.h"
 #include "interframe_spaces.h"
 
+#include "Arduino.h"
+
 uint8_t myMacAddress[MAC_ADDRESS_SIZE];
 
 CC1101* radio = CC1101::getInstance();

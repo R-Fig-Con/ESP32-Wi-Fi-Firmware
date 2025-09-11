@@ -1,4 +1,5 @@
 #include "radio_pins.h"
+#include "esp32-hal.h"
 
 #define attach_radio_interrupt() attachInterrupt(CC1101_GDO0, messageReceived, RISING);
 #define remove_radio_interrupt() detachInterrupt(CC1101_GDO0);

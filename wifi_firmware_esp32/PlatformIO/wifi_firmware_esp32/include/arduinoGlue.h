@@ -2,12 +2,18 @@
 #define ARDUINOGLUE_H
 
 //============ Includes ====================
-#include <ESPmDNS.h>
-#include <Arduino.h>
+#include <Arduino.h> // for prints, interrupts, could be used for millis and micros, among others
 
 //============ Defines & Macros====================
 
 #define CCA_FROM_GDO2_PIN
+/**
+ * code contains task to answer incoming packets.
+ * 
+ * If parameter change modifies logic of answer (attempting to moify the radio
+ * may also be a condition?) this macro should exist and code should safeguard 
+ * while doing changes
+ */
 #define ANSWER_TASK_CHANGES_WITH_PARAMETERS
 
 

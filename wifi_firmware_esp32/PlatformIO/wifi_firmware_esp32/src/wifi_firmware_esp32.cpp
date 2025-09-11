@@ -1,4 +1,3 @@
-//#include <Arduino.h>                              		//-- moved to arduinoGlue.h
 #include "wifi_firmware_esp32.h"
 #include "esp_system.h"
 #include "esp_wifi.h"

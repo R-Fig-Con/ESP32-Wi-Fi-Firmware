@@ -24,6 +24,7 @@
  */
 
 #include "cc1101.h"
+#include "Arduino.h" //various
 
 // Select (SPI) CC1101
 #define cc1101_Select() digitalWrite(SS, LOW)
