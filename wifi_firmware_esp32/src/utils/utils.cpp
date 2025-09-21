@@ -9,8 +9,6 @@
 
 uint8_t myMacAddress[MAC_ADDRESS_SIZE];
 
-CC1101* radio = CC1101::getInstance();
-
 TRAFFIC_GEN *trf_gen;
 
 CSMA_CONTROL *csma_control;
@@ -30,7 +28,7 @@ uint16_t durationCalculation(unsigned short data_length)
 {
   CCPACKET data_packet;
   data_packet.length = sizeof(ieeeFrame) + data_length;
-  return radio->transmittionTime(data_packet) + (2 * radio->transmittionTime(answer_packet)) + 3 * SIFS; // 3 SIFS, ack and cts
+  return CC1101::radio->transmittionTime(data_packet) + (2 * CC1101::radio->transmittionTime(answer_packet)) + 3 * SIFS; // 3 SIFS, ack and cts
 }
 
 /**
@@ -57,7 +55,7 @@ bool receiver()
   remove_radio_interrupt();
 
   // Try to receive the packet
-  radio->receiveData(&packet_to_receive);
+  CC1101::radio->receiveData(&packet_to_receive);
 
   if (packet_to_receive.crc_ok == false)
   {
@@ -75,12 +73,12 @@ bool receiver()
     uint16_t wait_time = receiveFrame->duration;
     unsigned long wait_start = micros();
 
-    radio->setIdleState();
+    CC1101::radio->setIdleState();
 
     while (micros() - wait_start <= wait_time)
       ;
 
-    radio->setRxState();
+    CC1101::radio->setRxState();
 
     return false;
   }
@@ -120,7 +118,7 @@ void receiveAndAnswerTask(void *unused_param)
       answerFrame->duration = 0; // no more to send after this, since fragmentation is not supported
       // Warning; This really counts on the packet sent not being interrupted, and therefore causing its failure
       // Creating prints in this step to check if the packet was sent or not should not cause any grand issues during testing;
-      if (!CC1101::getInstance()->getInstance()->sendData(answer_packet))
+      if (!CC1101::radio->sendData(answer_packet))
       {
         PRINTLN("Response failed, assumed task was interrupted");
       }
@@ -134,10 +132,10 @@ void receiveAndAnswerTask(void *unused_param)
       remove_radio_interrupt();
 
       PACKET_TO_CTS(answerFrame);
-      answerFrame->duration = receiveFrame->duration - SIFS - CC1101::getInstance()->transmittionTime(packet_to_receive);
+      answerFrame->duration = receiveFrame->duration - SIFS - CC1101::radio->transmittionTime(packet_to_receive);
       // Warning; This really counts on the packet sent not being interrupted, and therefore causing its failure
       // Creating prints in this step to check if the packet was sent or not should not cause any grand issues during testing;
-      if (!CC1101::getInstance()->sendData(answer_packet))
+      if (!CC1101::radio->sendData(answer_packet))
       {
         PRINTLN("Response failed, assumed task was interrupted");
       }
@@ -177,7 +175,7 @@ void changeParametersTask(void *unusedParam)
     }
 
 #ifdef ANSWER_TASK_CHANGES_WITH_PARAMETERS
-    CC1101::getInstance()->setIdleState(); // to avoid rx overflow
+    CC1101::radio->setIdleState(); // to avoid rx overflow
     PRINTLN("Set to idle state, avoiding answer task being activated");
 #endif
 
@@ -222,7 +220,7 @@ void changeParametersTask(void *unusedParam)
     }
 
 #ifdef ANSWER_TASK_CHANGES_WITH_PARAMETERS
-    CC1101::getInstance()->setRxState();
+    CC1101::radio->setRxState();
     PRINTLN("On rx state, allowing answer task activating");
 #endif
 

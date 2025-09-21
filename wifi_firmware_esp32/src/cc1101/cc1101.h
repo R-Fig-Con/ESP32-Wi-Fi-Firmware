@@ -336,11 +336,6 @@ class CC1101
 private:
   int8_t cca_threshold;
 
-  /**
-   * singleton instance Initialized by constructor call
-   */
-  static CC1101* radio_;
-
 #ifndef CCA_FROM_GDO2_PIN
   portMUX_TYPE myMutex = portMUX_INITIALIZER_UNLOCKED;
 #endif
@@ -409,16 +404,11 @@ public:
    */
   uint8_t devAddress;
 
-
-  static CC1101* getInstance();
-
-  /**
-   * cmdStrobe
-   *
-   * Send command strobe to the CC1101 IC via SPI
-   *
-   * 'cmd'  Command strobe
+    /**
+   * singleton instance Initialized by constructor call
    */
+  static CC1101* radio;
+
   void cmdStrobe(uint8_t cmd);
 
   /**

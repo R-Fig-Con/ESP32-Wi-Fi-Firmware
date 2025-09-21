@@ -34,7 +34,7 @@ void CSMA_CONTROL::waitForTurn()
 notFree:
     while (true)
     {
-        if (CC1101::getInstance()->cca())
+        if (CC1101::radio->cca())
         {
             break;
         }
@@ -43,7 +43,7 @@ notFree:
     start = micros();
     while (true)
     {
-        if (!CC1101::getInstance()->cca())
+        if (!CC1101::radio->cca())
         {
             goto notFree;
         }
@@ -58,7 +58,7 @@ notFree:
     start = micros();
     while (true)
     {
-        if (!CC1101::getInstance()->cca())
+        if (!CC1101::radio->cca())
         {
             goto notFree;
         }

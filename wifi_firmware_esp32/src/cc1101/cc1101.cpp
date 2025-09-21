@@ -116,27 +116,16 @@
 // Wait until GDO0 line goes low
 #define wait_GDO2_low() while (getGDO2state())
 
-CC1101* CC1101::radio_ = nullptr; //needs to be declared? todo check if is because it is a pointer
+CC1101* CC1101::radio = new CC1101(); //needs to be declared? todo check if is because it is a pointer
 
 CC1101::CC1101(void)
 {
-    radio_ = this; //static
     carrierFreq = CFREQ_868;
     channel = CC1101_DEFVAL_CHANNR;
     syncWord[0] = CC1101_DEFVAL_SYNC1;
     syncWord[1] = CC1101_DEFVAL_SYNC0;
     devAddress = CC1101_DEFVAL_ADDR;
     cca_threshold = CC1101_CCA_DEFAULT_THRESHOLD;
-}
-
-CC1101* CC1101::getInstance(){
-    if (radio_ == NULL)
-    {
-        radio_ = new CC1101();
-    }
-
-    return radio_;
-    
 }
 
 /**

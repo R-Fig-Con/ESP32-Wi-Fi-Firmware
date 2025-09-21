@@ -39,7 +39,7 @@ send:
   }
 
   remove_radio_interrupt();
-  CC1101::getInstance()->sendData(rts_packet);
+  CC1101::radio->sendData(rts_packet);
   attach_radio_interrupt();
 
   automaticResponse = false;
@@ -71,7 +71,7 @@ send:
 data_send:
 
   remove_radio_interrupt();
-  CC1101::getInstance()->sendData(packet_to_send);
+  CC1101::radio->sendData(packet_to_send);
   attach_radio_interrupt();
   automaticResponse = false; // necessary to do here if rts/cts skipped
   start_time = micros();

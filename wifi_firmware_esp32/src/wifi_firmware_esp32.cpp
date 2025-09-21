@@ -32,7 +32,7 @@ void messageReceived()
  */
 uint16_t dataDurationCalculation()
 {
-  return radio->transmittionTime(answer_packet) + SIFS; // 1 SIFS + ack time
+  return CC1101::radio->transmittionTime(answer_packet) + SIFS; // 1 SIFS + ack time
 }
 
 void setup()
@@ -53,21 +53,21 @@ void setup()
   PRINTLN_MAC(myMacAddress);
 
   // Initialize the CC1101 radio
-  radio->init();
-  radio->setSyncWord(syncWord);
-  radio->setCarrierFreq(CFREQ_433);
-  radio->disableAddressCheck();
-  radio->setTxPowerAmp(PA_LowPower);
+  CC1101::radio->init();
+  CC1101::radio->setSyncWord(syncWord);
+  CC1101::radio->setCarrierFreq(CFREQ_433);
+  CC1101::radio->disableAddressCheck();
+  CC1101::radio->setTxPowerAmp(PA_LowPower);
 
   delay(1000);
 
   // Print some debug info
   PRINT("CC1101_PARTNUM ");
-  PRINTLN_VALUE(radio->readReg(CC1101_PARTNUM, CC1101_STATUS_REGISTER));
+  PRINTLN_VALUE(CC1101::radio->readReg(CC1101_PARTNUM, CC1101_STATUS_REGISTER));
   PRINT("CC1101_VERSION ");
-  PRINTLN_VALUE(radio->readReg(CC1101_VERSION, CC1101_STATUS_REGISTER));
+  PRINTLN_VALUE(CC1101::radio->readReg(CC1101_VERSION, CC1101_STATUS_REGISTER));
   PRINT("CC1101_MARCSTATE ");
-  PRINTLN_VALUE(radio->readReg(CC1101_MARCSTATE, CC1101_STATUS_REGISTER) & 0x1f);
+  PRINTLN_VALUE(CC1101::radio->readReg(CC1101_MARCSTATE, CC1101_STATUS_REGISTER) & 0x1f);
 
   PRINTLN_VALUE("CC1101 radio initialized.");
 
@@ -130,7 +130,7 @@ void setup()
 
   attach_radio_interrupt();
 
-  radio->setRxState();
+  CC1101::radio->setRxState();
 }
 
 TaskHandle_t generatorHandle = NULL;

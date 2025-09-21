@@ -5,8 +5,6 @@
 
 extern uint8_t myMacAddress[MAC_ADDRESS_SIZE];
 
-extern CC1101* radio;
-
 extern TRAFFIC_GEN *trf_gen;
 
 extern CSMA_CONTROL *csma_control;
