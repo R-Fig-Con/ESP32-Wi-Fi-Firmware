@@ -3,6 +3,7 @@
 #define CSMA_CONTROL_H
 
 #include "../contention_backoff/contention_backoff.h"
+#include "cc1101_option.h"
 
 class CSMA_CONTROL
 {

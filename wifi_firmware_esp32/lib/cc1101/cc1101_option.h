@@ -1,0 +1,1 @@
+#define CCA_FROM_GDO2_PIN

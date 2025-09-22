@@ -24,6 +24,7 @@
  */
 
 #include "cc1101.h"
+#include "prints.h"
 #include "Arduino.h" //various
 
 // Select (SPI) CC1101

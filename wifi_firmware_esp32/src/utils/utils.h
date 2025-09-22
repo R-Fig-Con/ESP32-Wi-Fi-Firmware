@@ -1,4 +1,4 @@
-#include "../cc1101/cc1101.h"
+#include "cc1101.h"
 #include "../csma_control/csma_control.h"
 #include "../send_protocol/send_protocol.h"
 #include "../traffic_generator/traffic_generator.h"

@@ -3,6 +3,7 @@
 #include "esp_wifi.h"
 #include "WiFi.h"
 
+#include "prints.h"
 #include "radio_interruption.h"
 #include "mac_data.h"
 #include "interframe_spaces.h"

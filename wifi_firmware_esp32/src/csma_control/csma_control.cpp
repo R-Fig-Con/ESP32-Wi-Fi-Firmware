@@ -1,6 +1,6 @@
 #include "csma_control.h"
 #include "interframe_spaces.h"
-#include "../cc1101/cc1101.h"
+#include "cc1101.h"
 
 #include "esp32-hal.h" // micros
 

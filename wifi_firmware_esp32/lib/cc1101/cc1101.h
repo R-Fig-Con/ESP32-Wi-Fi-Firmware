@@ -29,7 +29,7 @@
 
 #include <SPI.h>
 #include "ccpacket.h"
-#include "arduinoGlue.h"
+#include "cc1101_option.h"
 #include "radio_pins.h"
 
 /**
