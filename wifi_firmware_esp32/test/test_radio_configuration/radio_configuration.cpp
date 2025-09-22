@@ -57,6 +57,8 @@ void setup()
     CC1101::radio->setRxState();
 
     RUN_TEST(test_check_receive_state);
+
+    UNITY_END();
     
 }
 

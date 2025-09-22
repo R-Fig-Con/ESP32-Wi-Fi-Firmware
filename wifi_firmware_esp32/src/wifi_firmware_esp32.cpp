@@ -62,16 +62,6 @@ void setup()
 
   delay(1000);
 
-  // Print some debug info
-  PRINT("CC1101_PARTNUM ");
-  PRINTLN_VALUE(CC1101::radio->readReg(CC1101_PARTNUM, CC1101_STATUS_REGISTER));
-  PRINT("CC1101_VERSION ");
-  PRINTLN_VALUE(CC1101::radio->readReg(CC1101_VERSION, CC1101_STATUS_REGISTER));
-  PRINT("CC1101_MARCSTATE ");
-  PRINTLN_VALUE(CC1101::radio->readReg(CC1101_MARCSTATE, CC1101_STATUS_REGISTER) & 0x1f);
-
-  PRINTLN_VALUE("CC1101 radio initialized.");
-
   uint32_t mac_num = ((uint32_t)myMacAddress[2] << 24) | ((uint32_t)myMacAddress[3] << 16) |
                      ((uint32_t)myMacAddress[4] << 8) | ((uint32_t)myMacAddress[5]);
   srand(mac_num);
@@ -147,8 +137,6 @@ void loop()
 
   if (!trf_gen->isRunning())
   {
-    PRINT("Initiating traffic..., loop has priority ");
-    PRINTLN_VALUE(uxTaskPriorityGet(NULL));
     xTaskCreatePinnedToCore(
         &generatorTask,             // Function to execute
         "traffic generator",        // Name of the task
