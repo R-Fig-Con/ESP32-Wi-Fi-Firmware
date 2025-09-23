@@ -3,7 +3,6 @@
 
 //============ Includes ====================
 #include <Arduino.h> // for prints, interrupts, could be used for millis and micros, among others
-#include "cc1101_option.h" // define choice
 
 //============ Defines & Macros====================
 

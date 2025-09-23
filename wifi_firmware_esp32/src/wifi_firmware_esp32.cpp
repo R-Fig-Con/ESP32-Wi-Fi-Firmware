@@ -1,12 +1,17 @@
-#include "wifi_firmware_esp32.h"
-#include "esp_system.h"
-#include "esp_wifi.h"
-#include "WiFi.h"
+#include "esp_system.h" //unused
 
 #include "prints.h"
 #include "radio_interruption.h"
 #include "mac_data.h"
 #include "interframe_spaces.h"
+
+#include "cc1101.h"
+#include "./contention_backoff/contention_backoff.h"
+#include "./csma_control/csma_control.h"
+#include "./send_protocol/send_protocol.h"
+#include "./traffic_generator/traffic_generator.h"
+#include "./utils/utils.h"
+#include "arduinoGlue.h"
 #include "./wifi_config/wifi_config.h"
 
 byte syncWord[2] = {199, 10};
@@ -45,7 +50,6 @@ void setup()
 
   // Wifi, for getting the MAC address.
   WiFi.mode(WIFI_STA);
-  // WiFi.STA.begin(); -- No need to start WiFi to get MAC
   esp_wifi_get_mac(WIFI_IF_STA, myMacAddress);
 
   delay(1000);
@@ -90,7 +94,6 @@ void setup()
   PACKET_TO_RTS(rtsFrame);
   rtsFrame->duration = durationCalculation(DEFAULT_FRAME_CONTENT_SIZE);
 
-  // 4C:11:AE:64:D1:8D
   uint8_t dstMacAddress[6] = DEFAULT_MAC_ADDRESS;
   memcpy(rtsFrame->addr_dest, dstMacAddress, MAC_ADDRESS_SIZE);
 
